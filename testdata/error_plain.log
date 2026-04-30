@@ -1,0 +1,12 @@
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 109B done
+#1 DONE 0.0s
+#2 [internal] load metadata for docker.io/library/alpine:3.20
+#2 DONE 0.4s
+#3 [1/1] RUN echo before && exit 1
+#3 0.102 before
+#3 0.103 /bin/sh: exit: line 1: illegal number: 1
+#3 ERROR: process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
+------
+ > [1/1] RUN echo before && exit 1:
+------

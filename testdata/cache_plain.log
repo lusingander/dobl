@@ -1,0 +1,8 @@
+#1 [internal] load build definition from Dockerfile
+#1 DONE 0.0s
+#2 [internal] load metadata for docker.io/library/alpine:3.20
+#2 DONE 0.3s
+#3 [1/2] FROM docker.io/library/alpine:3.20
+#3 CACHED
+#4 [2/2] RUN echo cached
+#4 DONE 0.0s

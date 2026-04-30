@@ -82,7 +82,7 @@ func ParseLine(raw string, lineNo int) Event {
 	switch {
 	case detail == "":
 		event.Kind = EventStepStatus
-	case stepStartRE.MatchString(detail):
+	case isStepStartDetail(detail):
 		event.Kind = EventStepStart
 	case stepStatusRE.MatchString(detail):
 		event.Kind = EventStepStatus
@@ -108,13 +108,35 @@ func setStatusFields(event *Event, detail string) {
 	}
 
 	event.Status = match[1]
+	event.Detail = ""
 	if match[2] != "" {
 		event.Detail = strings.TrimSpace(match[2])
 		return
 	}
 	if match[3] != "" {
-		event.Detail = strings.TrimSpace(match[3])
+		rest := strings.TrimSpace(match[3])
+		if extractDuration(rest) != rest {
+			event.Detail = rest
+		}
 	}
+}
+
+func isStepStartDetail(detail string) bool {
+	if stepStartRE.MatchString(detail) {
+		return true
+	}
+
+	for _, prefix := range []string{
+		"exporting to ",
+		"importing cache manifest from ",
+		"resolving provenance for ",
+	} {
+		if strings.HasPrefix(detail, prefix) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func extractDuration(detail string) string {
