@@ -26,6 +26,12 @@ Summarize events by BuildKit step:
 dobl summary build.log
 ```
 
+Emit a human-readable summary table:
+
+```sh
+dobl summary --format table build.log
+```
+
 Include each step's source events in the summary:
 
 ```sh
@@ -38,6 +44,9 @@ Emit compact JSON:
 dobl parse --compact build.log
 dobl summary --compact build.log
 ```
+
+The default format is `json`. `dobl parse` currently supports `--format json`;
+`dobl summary` supports `--format json` and `--format table`.
 
 ## Library
 
@@ -86,6 +95,7 @@ Implemented:
 - non-streaming `--progress=plain` parsing
 - event JSON output
 - step summary JSON output
+- step summary table output
 - fixtures for success, cache, error, warning, cancellation, metadata failure,
   and interleaved BuildKit logs
 
