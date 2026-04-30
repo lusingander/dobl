@@ -50,6 +50,9 @@ func TestParseLineHandlesTerminalArtifacts(t *testing.T) {
 	}{
 		{name: "carriage_return_progress_redraw", line: "#1 transferring context: 2B done\r#1 DONE 0.0s"},
 		{name: "ci_timestamp_prefix", line: "2026-04-30T12:34:56.789Z #1 DONE 0.0s"},
+		{name: "ci_timestamp_offset_prefix", line: "2026-04-30T12:34:56.789+09:00 #1 DONE 0.0s"},
+		{name: "cri_log_prefix", line: "2026-04-30T12:34:56Z stdout F #1 DONE 0.0s"},
+		{name: "leading_whitespace", line: "  #1 DONE 0.0s"},
 		{name: "ansi_and_ci_timestamp_prefix", line: "2026-04-30T12:34:56Z \x1b[32m#1 DONE 0.0s\x1b[0m"},
 	}
 
@@ -356,6 +359,16 @@ func TestParseFixtures(t *testing.T) {
 			starts:      2,
 			statuses:    2,
 			unknowns:    8,
+			finalStepID: "#2",
+			finalStatus: EventStatusError,
+		},
+		{
+			name:        "ci_prefixed",
+			file:        "testdata/ci_prefixed_plain.log",
+			events:      6,
+			starts:      2,
+			statuses:    3,
+			outputs:     1,
 			finalStepID: "#2",
 			finalStatus: EventStatusError,
 		},

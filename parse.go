@@ -167,8 +167,8 @@ type Event struct {
 
 var (
 	ansiEscapeRE         = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]`)
-	ciTimestampRE        = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\s+`)
 	dockerfileStepNameRE = regexp.MustCompile(`^\[(?:(.+)\s+)?(\d+)/(\d+)\]\s+(\S+)`)
+	logPrefixRE          = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})(?:\s+(?:stdout|stderr)\s+[FP])?\s+`)
 	stepLineRE           = regexp.MustCompile(`^#(\d+)\s*(.*)$`)
 	stepStartRE          = regexp.MustCompile(`^\[[^\]]+\]\s+.+$`)
 	stepStatusRE         = regexp.MustCompile(`^(DONE|CACHED|ERROR|CANCELED|WARNING)(?::\s*(.*)|\s+(.+))?$`)
@@ -246,7 +246,8 @@ func normalizeLine(raw string) string {
 	if index := strings.LastIndex(clean, "\r"); index >= 0 {
 		clean = clean[index+1:]
 	}
-	return ciTimestampRE.ReplaceAllString(clean, "")
+	clean = logPrefixRE.ReplaceAllString(clean, "")
+	return strings.TrimLeft(clean, " \t")
 }
 
 func setStatusFields(event *Event, detail string) {

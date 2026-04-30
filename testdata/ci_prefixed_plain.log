@@ -1,0 +1,6 @@
+2026-04-30T12:34:56.789+09:00 #1 [internal] load build definition from Dockerfile
+2026-04-30T12:34:56.790+09:00 stdout F #1 transferring dockerfile: 227B 0.0s done
+2026-04-30T12:34:56.791+09:00 stdout F #1 DONE 0.0s
+  #2 [1/1] RUN echo from ci
+2026-04-30T12:34:57Z stderr F #2 0.100 from ci
+2026-04-30T12:34:58Z stderr F #2 ERROR: process "/bin/sh -c echo from ci && exit 1" did not complete successfully: exit code: 1
