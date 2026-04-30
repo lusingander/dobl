@@ -49,6 +49,65 @@ func TestParseLineErrorStatus(t *testing.T) {
 	assertEvent(t, event, EventStepStatus, "#4", "ERROR", `process "/bin/sh -c exit 1" did not complete successfully`, "")
 }
 
+func TestBuildLogSteps(t *testing.T) {
+	input, err := os.Open("testdata/success_plain.log")
+	if err != nil {
+		t.Fatalf("open fixture: %v", err)
+	}
+	defer input.Close()
+
+	log, err := Parse(input)
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	steps := log.Steps()
+	if len(steps) != 6 {
+		t.Fatalf("step count = %d, want 6", len(steps))
+	}
+
+	first := steps[0]
+	if first.ID != "#1" {
+		t.Fatalf("first step id = %q, want #1", first.ID)
+	}
+	if first.Name != "[internal] load build definition from Dockerfile" {
+		t.Fatalf("first step name = %q", first.Name)
+	}
+	if first.Status != "DONE" {
+		t.Fatalf("first step status = %q, want DONE", first.Status)
+	}
+	if first.Duration != "0.0s" {
+		t.Fatalf("first step duration = %q, want 0.0s", first.Duration)
+	}
+	if first.StartLine != 1 || first.EndLine != 3 {
+		t.Fatalf("first step lines = %d-%d, want 1-3", first.StartLine, first.EndLine)
+	}
+	if len(first.Events) != 3 {
+		t.Fatalf("first step event count = %d, want 3", len(first.Events))
+	}
+
+	last := steps[len(steps)-1]
+	if last.ID != "#6" {
+		t.Fatalf("last step id = %q, want #6", last.ID)
+	}
+	if last.Name != "exporting to image" {
+		t.Fatalf("last step name = %q", last.Name)
+	}
+	if last.Status != "DONE" {
+		t.Fatalf("last step status = %q, want DONE", last.Status)
+	}
+	if last.StartLine != 14 || last.EndLine != 16 {
+		t.Fatalf("last step lines = %d-%d, want 14-16", last.StartLine, last.EndLine)
+	}
+}
+
+func TestBuildLogStepsNil(t *testing.T) {
+	var log *BuildLog
+	if steps := log.Steps(); steps != nil {
+		t.Fatalf("nil log steps = %#v, want nil", steps)
+	}
+}
+
 func TestParseFixtures(t *testing.T) {
 	tests := []struct {
 		name         string

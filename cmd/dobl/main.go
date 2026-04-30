@@ -10,6 +10,8 @@ import (
 	"github.com/lusingander/dobl"
 )
 
+const usage = "usage: dobl parse [file]\n       dobl summary [file]"
+
 func main() {
 	if err := run(os.Args, os.Stdin, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -18,11 +20,11 @@ func main() {
 }
 
 func run(args []string, stdin io.Reader, stdout io.Writer) error {
-	if len(args) < 2 || args[1] != "parse" {
-		return errors.New("usage: dobl parse [file]")
+	if len(args) < 2 {
+		return errors.New(usage)
 	}
 	if len(args) > 3 {
-		return errors.New("usage: dobl parse [file]")
+		return errors.New(usage)
 	}
 
 	var input io.Reader = stdin
@@ -42,7 +44,17 @@ func run(args []string, stdin io.Reader, stdout io.Writer) error {
 		return err
 	}
 
+	var output any
+	switch args[1] {
+	case "parse":
+		output = log
+	case "summary":
+		output = log.Steps()
+	default:
+		return errors.New(usage)
+	}
+
 	encoder := json.NewEncoder(stdout)
 	encoder.SetIndent("", "  ")
-	return encoder.Encode(log)
+	return encoder.Encode(output)
 }

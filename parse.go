@@ -22,6 +22,59 @@ type BuildLog struct {
 	Events []Event `json:"events"`
 }
 
+// Steps returns build steps in first-seen order, grouped by step ID.
+func (l *BuildLog) Steps() []Step {
+	if l == nil {
+		return nil
+	}
+
+	steps := make([]Step, 0)
+	indexes := map[string]int{}
+	for _, event := range l.Events {
+		if event.StepID == "" {
+			continue
+		}
+
+		index, ok := indexes[event.StepID]
+		if !ok {
+			index = len(steps)
+			indexes[event.StepID] = index
+			steps = append(steps, Step{
+				ID:        event.StepID,
+				StartLine: event.Line,
+				EndLine:   event.Line,
+			})
+		}
+
+		step := &steps[index]
+		step.Events = append(step.Events, event)
+		step.EndLine = event.Line
+
+		if event.Kind == EventStepStart && step.Name == "" {
+			step.Name = event.Detail
+		}
+		if event.Status != "" {
+			step.Status = event.Status
+		}
+		if event.Duration != "" {
+			step.Duration = event.Duration
+		}
+	}
+
+	return steps
+}
+
+// Step is an aggregate view of all events with the same BuildKit step ID.
+type Step struct {
+	ID        string  `json:"id"`
+	Name      string  `json:"name,omitempty"`
+	Status    string  `json:"status,omitempty"`
+	Duration  string  `json:"duration,omitempty"`
+	StartLine int     `json:"start_line"`
+	EndLine   int     `json:"end_line"`
+	Events    []Event `json:"events,omitempty"`
+}
+
 // Event is one parsed line from a docker build/buildx --progress=plain log.
 type Event struct {
 	Line     int       `json:"line"`
