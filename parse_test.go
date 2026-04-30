@@ -108,6 +108,57 @@ func TestBuildLogStepsNil(t *testing.T) {
 	}
 }
 
+func TestBuildLogStepsInterleavedFixture(t *testing.T) {
+	input, err := os.Open("testdata/parallel_plain.log")
+	if err != nil {
+		t.Fatalf("open fixture: %v", err)
+	}
+	defer input.Close()
+
+	log, err := Parse(input)
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	steps := log.Steps()
+	assertStepIDs(t, steps, []string{"#1", "#2", "#3", "#4", "#5", "#6", "#7", "#8", "#9"})
+
+	step3 := findStep(t, steps, "#3")
+	if step3.Name != "[build 1/3] RUN go mod download" {
+		t.Fatalf("step #3 name = %q", step3.Name)
+	}
+	if step3.Status != "DONE" {
+		t.Fatalf("step #3 status = %q, want DONE", step3.Status)
+	}
+	if step3.StartLine != 5 || step3.EndLine != 13 {
+		t.Fatalf("step #3 lines = %d-%d, want 5-13", step3.StartLine, step3.EndLine)
+	}
+	if len(step3.Events) != 4 {
+		t.Fatalf("step #3 events = %d, want 4", len(step3.Events))
+	}
+
+	step4 := findStep(t, steps, "#4")
+	if step4.Status != "DONE" {
+		t.Fatalf("step #4 status = %q, want DONE", step4.Status)
+	}
+	if step4.StartLine != 6 || step4.EndLine != 11 {
+		t.Fatalf("step #4 lines = %d-%d, want 6-11", step4.StartLine, step4.EndLine)
+	}
+
+	step5 := findStep(t, steps, "#5")
+	if step5.Status != "CACHED" {
+		t.Fatalf("step #5 status = %q, want CACHED", step5.Status)
+	}
+
+	step8 := findStep(t, steps, "#8")
+	if step8.Name != "exporting cache to local directory" {
+		t.Fatalf("step #8 name = %q", step8.Name)
+	}
+	if step8.Status != "DONE" {
+		t.Fatalf("step #8 status = %q, want DONE", step8.Status)
+	}
+}
+
 func TestParseFixtures(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -152,6 +203,17 @@ func TestParseFixtures(t *testing.T) {
 			unknowns:    3,
 			finalStepID: "#3",
 			finalStatus: "ERROR",
+		},
+		{
+			name:         "parallel",
+			file:         "testdata/parallel_plain.log",
+			events:       26,
+			starts:       9,
+			statuses:     13,
+			outputs:      4,
+			finalStepID:  "#9",
+			finalStatus:  "DONE",
+			finalDuraton: "0.0s",
 		},
 	}
 
@@ -201,6 +263,31 @@ func TestParseFixtures(t *testing.T) {
 			}
 		})
 	}
+}
+
+func assertStepIDs(t *testing.T, steps []Step, ids []string) {
+	t.Helper()
+
+	if len(steps) != len(ids) {
+		t.Fatalf("step count = %d, want %d", len(steps), len(ids))
+	}
+	for i, id := range ids {
+		if steps[i].ID != id {
+			t.Fatalf("step[%d] id = %q, want %q", i, steps[i].ID, id)
+		}
+	}
+}
+
+func findStep(t *testing.T, steps []Step, id string) Step {
+	t.Helper()
+
+	for _, step := range steps {
+		if step.ID == id {
+			return step
+		}
+	}
+	t.Fatalf("step %s not found", id)
+	return Step{}
 }
 
 func countKinds(events []Event) map[EventKind]int {

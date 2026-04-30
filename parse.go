@@ -140,6 +140,9 @@ func ParseLine(raw string, lineNo int) Event {
 	case stepStatusRE.MatchString(detail):
 		event.Kind = EventStepStatus
 		setStatusFields(&event, detail)
+	case isProgressDetail(detail):
+		event.Kind = EventStepStatus
+		event.Status = "PROGRESS"
 	case stepOutputRE.MatchString(detail):
 		event.Kind = EventStepOutput
 	default:
@@ -181,6 +184,7 @@ func isStepStartDetail(detail string) bool {
 
 	for _, prefix := range []string{
 		"exporting to ",
+		"exporting cache to ",
 		"importing cache manifest from ",
 		"resolving provenance for ",
 	} {
@@ -190,6 +194,10 @@ func isStepStartDetail(detail string) bool {
 	}
 
 	return false
+}
+
+func isProgressDetail(detail string) bool {
+	return strings.HasSuffix(detail, " done")
 }
 
 func extractDuration(detail string) string {
