@@ -48,6 +48,29 @@ dobl summary --compact build.log
 The default format is `json`. `dobl parse` currently supports `--format json`;
 `dobl summary` supports `--format json` and `--format table`.
 
+## Output Examples
+
+`dobl parse --compact build.log` emits line-oriented events:
+
+```json
+{"events":[{"line":1,"kind":"step_start","raw":"#1 [internal] load build definition from Dockerfile","step_id":"#1","detail":"[internal] load build definition from Dockerfile"},{"line":3,"kind":"step_status","raw":"#1 DONE 0.0s","step_id":"#1","status":"DONE","duration":"0.0s","duration_nanos":0},{"line":7,"kind":"step_output","raw":"#3 0.102 before","step_id":"#3","detail":"0.102 before"},{"line":9,"kind":"step_status","raw":"#3 ERROR: process \"...\" did not complete successfully: exit code: 2","step_id":"#3","detail":"process \"...\" did not complete successfully: exit code: 2","status":"ERROR"}]}
+```
+
+`dobl summary --compact build.log` emits derived step summaries:
+
+```json
+[{"id":"#3","name":"[1/1] RUN echo before && exit 1","status":"ERROR","index":1,"total":1,"instruction":"RUN","output_count":2,"progress_count":0,"unknown_count":0,"error_detail":"process \"...\" did not complete successfully: exit code: 2","start_line":6,"end_line":9}]
+```
+
+`dobl summary --format table build.log` emits a readable table:
+
+```text
+ID  STATUS  DURATION  STEP  INSTRUCTION  OUTPUTS  PROGRESS  ERROR
+#1  DONE    0.0s                         0        1
+#2  DONE    0.4s                         0        0
+#3  ERROR             1/1   RUN          2        0         process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
+```
+
 ## Library
 
 ```go
