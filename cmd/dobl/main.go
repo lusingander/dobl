@@ -38,13 +38,16 @@ type parseCmd struct {
 }
 
 type summaryCmd struct {
-	Compact bool   `help:"Emit compact JSON."`
-	Events  bool   `help:"Include source events in each step."`
-	Failed  bool   `help:"Only include failed steps."`
-	Format  string `default:"json" enum:"json,table" help:"Output format."`
-	Status  string `placeholder:"STATUS" help:"Only include steps with this status. One of: DONE, CACHED, ERROR, CANCELED, WARNING, PROGRESS."`
-	Wide    bool   `help:"Do not truncate table error details."`
-	File    string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
+	Compact     bool   `help:"Emit compact JSON."`
+	Events      bool   `help:"Include source events in each step."`
+	Failed      bool   `help:"Only include failed steps."`
+	Format      string `default:"json" enum:"json,table" help:"Output format."`
+	Status      string `placeholder:"STATUS" help:"Only include steps with this status. One of: DONE, CACHED, ERROR, CANCELED, WARNING, PROGRESS."`
+	Stage       string `placeholder:"STAGE" help:"Only include Dockerfile steps from this stage."`
+	Instruction string `placeholder:"INSTRUCTION" help:"Only include Dockerfile steps with this instruction."`
+	Step        string `placeholder:"ID" help:"Only include a specific BuildKit step ID, such as #3 or 3."`
+	Wide        bool   `help:"Do not truncate table error details."`
+	File        string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
 }
 
 func (c *parseCmd) Help() string {
@@ -59,7 +62,9 @@ func (c *summaryCmd) Help() string {
   dobl summary --format table build.log
   dobl summary --format table --wide build.log
   dobl summary --failed --format table build.log
-  dobl summary --status ERROR build.log`
+  dobl summary --status ERROR build.log
+  dobl summary --stage build --instruction RUN build.log
+  dobl summary --step #3 build.log`
 }
 
 type runContext struct {
@@ -96,6 +101,15 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 	if c.Status != "" {
 		status := dobl.EventStatus(c.Status)
 		steps = filterStepsByStatus(steps, status)
+	}
+	if c.Stage != "" {
+		steps = filterStepsByStage(steps, c.Stage)
+	}
+	if c.Instruction != "" {
+		steps = filterStepsByInstruction(steps, c.Instruction)
+	}
+	if c.Step != "" {
+		steps = filterStepsByID(steps, normalizeStepID(c.Step))
 	}
 	if !c.Events {
 		for i := range steps {
@@ -155,6 +169,43 @@ func filterStepsByStatus(steps []dobl.Step, status dobl.EventStatus) []dobl.Step
 		}
 	}
 	return filtered
+}
+
+func filterStepsByStage(steps []dobl.Step, stage string) []dobl.Step {
+	filtered := make([]dobl.Step, 0, len(steps))
+	for _, step := range steps {
+		if step.Stage == stage {
+			filtered = append(filtered, step)
+		}
+	}
+	return filtered
+}
+
+func filterStepsByInstruction(steps []dobl.Step, instruction string) []dobl.Step {
+	filtered := make([]dobl.Step, 0, len(steps))
+	for _, step := range steps {
+		if strings.EqualFold(step.Instruction, instruction) {
+			filtered = append(filtered, step)
+		}
+	}
+	return filtered
+}
+
+func filterStepsByID(steps []dobl.Step, id string) []dobl.Step {
+	filtered := make([]dobl.Step, 0, len(steps))
+	for _, step := range steps {
+		if step.ID == id {
+			filtered = append(filtered, step)
+		}
+	}
+	return filtered
+}
+
+func normalizeStepID(id string) string {
+	if strings.HasPrefix(id, "#") {
+		return id
+	}
+	return "#" + id
 }
 
 func isKnownStatus(status dobl.EventStatus) bool {

@@ -322,6 +322,72 @@ func TestRunSummaryStatusTable(t *testing.T) {
 	}
 }
 
+func TestRunSummaryStageFilterJSON(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--stage", "build"}, strings.NewReader(strings.Join([]string{
+		"#1 [internal] load build definition from Dockerfile",
+		"#1 DONE 0.0s",
+		"#2 [build 1/2] RUN echo hi",
+		"#2 DONE 0.1s",
+		"#3 [stage-1 2/2] COPY --from=build /out /out",
+		"#3 DONE 0.0s",
+	}, "\n")), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	var decoded []struct {
+		ID    string `json:"id"`
+		Stage string `json:"stage"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &decoded); err != nil {
+		t.Fatalf("invalid json output: %v", err)
+	}
+	if len(decoded) != 1 || decoded[0].ID != "#2" || decoded[0].Stage != "build" {
+		t.Fatalf("unexpected filtered steps: %+v", decoded)
+	}
+}
+
+func TestRunSummaryInstructionFilterJSON(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--instruction", "run"}, strings.NewReader(strings.Join([]string{
+		"#1 [1/2] FROM alpine",
+		"#1 DONE 0.0s",
+		"#2 [2/2] RUN echo hi",
+		"#2 DONE 0.1s",
+	}, "\n")), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	var decoded []struct {
+		ID          string `json:"id"`
+		Instruction string `json:"instruction"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &decoded); err != nil {
+		t.Fatalf("invalid json output: %v", err)
+	}
+	if len(decoded) != 1 || decoded[0].ID != "#2" || decoded[0].Instruction != "RUN" {
+		t.Fatalf("unexpected filtered steps: %+v", decoded)
+	}
+}
+
+func TestRunSummaryStepFilterTable(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--step", "2", "--format", "table"}, strings.NewReader("#1 DONE 0.1s\n#2 ERROR: failed\n"), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	if strings.Contains(output, "#1") {
+		t.Fatalf("table output contains filtered step: %q", output)
+	}
+	if !strings.Contains(output, "#2") || !strings.Contains(output, "ERROR") {
+		t.Fatalf("table output missing selected step: %q", output)
+	}
+}
+
 func TestRunSummaryRejectsFailedAndStatus(t *testing.T) {
 	var out bytes.Buffer
 	err := run([]string{"dobl", "summary", "--failed", "--status", "ERROR"}, strings.NewReader("#1 ERROR: failed\n"), &out)
