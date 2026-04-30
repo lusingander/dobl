@@ -61,6 +61,11 @@ vary across Docker versions or CI environments.
 - `Event.Raw` keeps the original line.
 - `Event.Kind` is one of `step_start`, `step_status`, `step_output`, or
   `unknown`.
+- `Event.Status` uses typed constants for `DONE`, `CACHED`, `ERROR`,
+  `CANCELED`, `WARNING`, and parser-generated `PROGRESS`.
+- `Event.Detail` keeps the meaningful text after the BuildKit step ID when it
+  is not already represented by status or duration. For example, it stores step
+  names, progress text, error/warning messages, and command output.
 - `BuildLog.Steps()` groups events by BuildKit step id in first-seen order.
 
 ## Scope

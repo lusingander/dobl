@@ -27,9 +27,9 @@ func TestParsePlainBuildLog(t *testing.T) {
 	}
 
 	assertEvent(t, log.Events[0], EventStepStart, "#1", "", "[internal] load build definition from Dockerfile", "")
-	assertEvent(t, log.Events[1], EventStepStatus, "#1", "PROGRESS", "transferring dockerfile: 227B 0.0s done", "0.0s")
-	assertEvent(t, log.Events[2], EventStepStatus, "#1", "DONE", "", "0.1s")
-	assertEvent(t, log.Events[4], EventStepStatus, "#2", "CACHED", "", "")
+	assertEvent(t, log.Events[1], EventStepStatus, "#1", EventStatusProgress, "transferring dockerfile: 227B 0.0s done", "0.0s")
+	assertEvent(t, log.Events[2], EventStepStatus, "#1", EventStatusDone, "", "0.1s")
+	assertEvent(t, log.Events[4], EventStepStatus, "#2", EventStatusCached, "", "")
 	assertEvent(t, log.Events[5], EventStepOutput, "#3", "", "0.123 hello from run", "")
 	assertEvent(t, log.Events[6], EventUnknown, "", "", "", "")
 }
@@ -37,7 +37,7 @@ func TestParsePlainBuildLog(t *testing.T) {
 func TestParseLineStripsANSIBeforeParsing(t *testing.T) {
 	event := ParseLine("\x1b[32m#9 DONE 2.4s\x1b[0m", 1)
 
-	assertEvent(t, event, EventStepStatus, "#9", "DONE", "", "2.4s")
+	assertEvent(t, event, EventStepStatus, "#9", EventStatusDone, "", "2.4s")
 	if event.Raw != "\x1b[32m#9 DONE 2.4s\x1b[0m" {
 		t.Fatalf("raw line was not preserved: %q", event.Raw)
 	}
@@ -46,7 +46,31 @@ func TestParseLineStripsANSIBeforeParsing(t *testing.T) {
 func TestParseLineErrorStatus(t *testing.T) {
 	event := ParseLine(`#4 ERROR: process "/bin/sh -c exit 1" did not complete successfully`, 1)
 
-	assertEvent(t, event, EventStepStatus, "#4", "ERROR", `process "/bin/sh -c exit 1" did not complete successfully`, "")
+	assertEvent(t, event, EventStepStatus, "#4", EventStatusError, `process "/bin/sh -c exit 1" did not complete successfully`, "")
+}
+
+func TestParseLineKnownStatuses(t *testing.T) {
+	tests := []struct {
+		line     string
+		status   EventStatus
+		detail   string
+		duration string
+	}{
+		{line: "#1 DONE 0.1s", status: EventStatusDone, duration: "0.1s"},
+		{line: "#2 CACHED", status: EventStatusCached},
+		{line: "#3 ERROR: failed to solve", status: EventStatusError, detail: "failed to solve"},
+		{line: "#4 CANCELED", status: EventStatusCanceled},
+		{line: "#5 WARNING: cache import failed", status: EventStatusWarning, detail: "cache import failed"},
+		{line: "#6 resolving docker.io/library/alpine:latest done", status: EventStatusProgress, detail: "resolving docker.io/library/alpine:latest done"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.status), func(t *testing.T) {
+			event := ParseLine(tt.line, 1)
+
+			assertEvent(t, event, EventStepStatus, strings.Fields(tt.line)[0], tt.status, tt.detail, tt.duration)
+		})
+	}
 }
 
 func TestBuildLogSteps(t *testing.T) {
@@ -73,7 +97,7 @@ func TestBuildLogSteps(t *testing.T) {
 	if first.Name != "[internal] load build definition from Dockerfile" {
 		t.Fatalf("first step name = %q", first.Name)
 	}
-	if first.Status != "DONE" {
+	if first.Status != EventStatusDone {
 		t.Fatalf("first step status = %q, want DONE", first.Status)
 	}
 	if first.Duration != "0.0s" {
@@ -93,7 +117,7 @@ func TestBuildLogSteps(t *testing.T) {
 	if last.Name != "exporting to image" {
 		t.Fatalf("last step name = %q", last.Name)
 	}
-	if last.Status != "DONE" {
+	if last.Status != EventStatusDone {
 		t.Fatalf("last step status = %q, want DONE", last.Status)
 	}
 	if last.StartLine != 14 || last.EndLine != 16 {
@@ -127,7 +151,7 @@ func TestBuildLogStepsInterleavedFixture(t *testing.T) {
 	if step3.Name != "[build 1/3] RUN go mod download" {
 		t.Fatalf("step #3 name = %q", step3.Name)
 	}
-	if step3.Status != "DONE" {
+	if step3.Status != EventStatusDone {
 		t.Fatalf("step #3 status = %q, want DONE", step3.Status)
 	}
 	if step3.StartLine != 5 || step3.EndLine != 13 {
@@ -138,7 +162,7 @@ func TestBuildLogStepsInterleavedFixture(t *testing.T) {
 	}
 
 	step4 := findStep(t, steps, "#4")
-	if step4.Status != "DONE" {
+	if step4.Status != EventStatusDone {
 		t.Fatalf("step #4 status = %q, want DONE", step4.Status)
 	}
 	if step4.StartLine != 6 || step4.EndLine != 11 {
@@ -146,7 +170,7 @@ func TestBuildLogStepsInterleavedFixture(t *testing.T) {
 	}
 
 	step5 := findStep(t, steps, "#5")
-	if step5.Status != "CACHED" {
+	if step5.Status != EventStatusCached {
 		t.Fatalf("step #5 status = %q, want CACHED", step5.Status)
 	}
 
@@ -154,7 +178,7 @@ func TestBuildLogStepsInterleavedFixture(t *testing.T) {
 	if step8.Name != "exporting cache to local directory" {
 		t.Fatalf("step #8 name = %q", step8.Name)
 	}
-	if step8.Status != "DONE" {
+	if step8.Status != EventStatusDone {
 		t.Fatalf("step #8 status = %q, want DONE", step8.Status)
 	}
 }
@@ -169,7 +193,7 @@ func TestParseFixtures(t *testing.T) {
 		outputs      int
 		unknowns     int
 		finalStepID  string
-		finalStatus  string
+		finalStatus  EventStatus
 		finalDuraton string
 	}{
 		{
@@ -180,7 +204,7 @@ func TestParseFixtures(t *testing.T) {
 			statuses:     9,
 			outputs:      1,
 			finalStepID:  "#6",
-			finalStatus:  "DONE",
+			finalStatus:  EventStatusDone,
 			finalDuraton: "0.0s",
 		},
 		{
@@ -190,7 +214,7 @@ func TestParseFixtures(t *testing.T) {
 			starts:       4,
 			statuses:     4,
 			finalStepID:  "#4",
-			finalStatus:  "DONE",
+			finalStatus:  EventStatusDone,
 			finalDuraton: "0.0s",
 		},
 		{
@@ -202,7 +226,7 @@ func TestParseFixtures(t *testing.T) {
 			outputs:     2,
 			unknowns:    3,
 			finalStepID: "#3",
-			finalStatus: "ERROR",
+			finalStatus: EventStatusError,
 		},
 		{
 			name:         "parallel",
@@ -212,7 +236,7 @@ func TestParseFixtures(t *testing.T) {
 			statuses:     13,
 			outputs:      4,
 			finalStepID:  "#9",
-			finalStatus:  "DONE",
+			finalStatus:  EventStatusDone,
 			finalDuraton: "0.0s",
 		},
 	}
@@ -307,7 +331,7 @@ func lastStatusEvent(events []Event) *Event {
 	return nil
 }
 
-func assertEvent(t *testing.T, event Event, kind EventKind, stepID, status, detail, duration string) {
+func assertEvent(t *testing.T, event Event, kind EventKind, stepID string, status EventStatus, detail, duration string) {
 	t.Helper()
 
 	if event.Kind != kind {

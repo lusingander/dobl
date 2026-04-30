@@ -17,6 +17,18 @@ const (
 	EventUnknown    EventKind = "unknown"
 )
 
+// EventStatus identifies a parsed BuildKit step status.
+type EventStatus string
+
+const (
+	EventStatusDone     EventStatus = "DONE"
+	EventStatusCached   EventStatus = "CACHED"
+	EventStatusError    EventStatus = "ERROR"
+	EventStatusCanceled EventStatus = "CANCELED"
+	EventStatusWarning  EventStatus = "WARNING"
+	EventStatusProgress EventStatus = "PROGRESS"
+)
+
 // BuildLog is the intermediate representation for a parsed build log.
 type BuildLog struct {
 	Events []Event `json:"events"`
@@ -66,24 +78,32 @@ func (l *BuildLog) Steps() []Step {
 
 // Step is an aggregate view of all events with the same BuildKit step ID.
 type Step struct {
-	ID        string  `json:"id"`
-	Name      string  `json:"name,omitempty"`
-	Status    string  `json:"status,omitempty"`
-	Duration  string  `json:"duration,omitempty"`
-	StartLine int     `json:"start_line"`
-	EndLine   int     `json:"end_line"`
-	Events    []Event `json:"events,omitempty"`
+	ID        string      `json:"id"`
+	Name      string      `json:"name,omitempty"`
+	Status    EventStatus `json:"status,omitempty"`
+	Duration  string      `json:"duration,omitempty"`
+	StartLine int         `json:"start_line"`
+	EndLine   int         `json:"end_line"`
+	Events    []Event     `json:"events,omitempty"`
 }
 
 // Event is one parsed line from a docker build/buildx --progress=plain log.
+//
+// Detail keeps the meaningful text after the BuildKit step ID when it is not
+// already represented by Status or Duration:
+//   - EventStepStart: the step name, such as "[internal] load metadata".
+//   - EventStepStatus with EventStatusProgress: the progress text.
+//   - EventStepStatus with EventStatusError or EventStatusWarning: the message.
+//   - EventStepOutput: the command output line after the step ID.
+//   - EventUnknown: empty.
 type Event struct {
-	Line     int       `json:"line"`
-	Kind     EventKind `json:"kind"`
-	Raw      string    `json:"raw"`
-	StepID   string    `json:"step_id,omitempty"`
-	Detail   string    `json:"detail,omitempty"`
-	Status   string    `json:"status,omitempty"`
-	Duration string    `json:"duration,omitempty"`
+	Line     int         `json:"line"`
+	Kind     EventKind   `json:"kind"`
+	Raw      string      `json:"raw"`
+	StepID   string      `json:"step_id,omitempty"`
+	Detail   string      `json:"detail,omitempty"`
+	Status   EventStatus `json:"status,omitempty"`
+	Duration string      `json:"duration,omitempty"`
 }
 
 var (
@@ -142,12 +162,12 @@ func ParseLine(raw string, lineNo int) Event {
 		setStatusFields(&event, detail)
 	case isProgressDetail(detail):
 		event.Kind = EventStepStatus
-		event.Status = "PROGRESS"
+		event.Status = EventStatusProgress
 	case stepOutputRE.MatchString(detail):
 		event.Kind = EventStepOutput
 	default:
 		event.Kind = EventStepStatus
-		event.Status = "PROGRESS"
+		event.Status = EventStatusProgress
 	}
 
 	if event.Duration == "" {
@@ -163,7 +183,7 @@ func setStatusFields(event *Event, detail string) {
 		return
 	}
 
-	event.Status = match[1]
+	event.Status = EventStatus(match[1])
 	event.Detail = ""
 	if match[2] != "" {
 		event.Detail = strings.TrimSpace(match[2])
