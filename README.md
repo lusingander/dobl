@@ -141,3 +141,7 @@ Not implemented yet:
 - streaming parsing
 - `--progress=rawjson`
 - terminal or HTML visualization
+
+## License
+
+MIT
