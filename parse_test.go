@@ -66,6 +66,19 @@ func TestParseLineHandlesTerminalArtifacts(t *testing.T) {
 	}
 }
 
+func TestParseReportsScannerErrorsWithLineContext(t *testing.T) {
+	_, err := Parse(strings.NewReader(strings.Repeat("x", scannerMaxLineBytes+1)))
+	if err == nil {
+		t.Fatal("Parse returned nil error")
+	}
+	if !strings.Contains(err.Error(), "parse build log after line 0") {
+		t.Fatalf("error = %q, want line context", err)
+	}
+	if !strings.Contains(err.Error(), "token too long") {
+		t.Fatalf("error = %q, want scanner cause", err)
+	}
+}
+
 func TestParseLineErrorStatus(t *testing.T) {
 	event := ParseLine(`#4 ERROR: process "/bin/sh -c exit 1" did not complete successfully`, 1)
 

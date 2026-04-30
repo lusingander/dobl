@@ -2,12 +2,15 @@ package dobl
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
+
+const scannerMaxLineBytes = 1024 * 1024
 
 // EventKind identifies the parsed role of a plain BuildKit progress line.
 type EventKind string
@@ -177,7 +180,7 @@ var (
 // an event-oriented intermediate representation.
 func Parse(r io.Reader) (*BuildLog, error) {
 	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	scanner.Buffer(make([]byte, 0, 64*1024), scannerMaxLineBytes)
 
 	log := &BuildLog{}
 	lineNo := 0
@@ -186,7 +189,7 @@ func Parse(r io.Reader) (*BuildLog, error) {
 		log.Events = append(log.Events, ParseLine(scanner.Text(), lineNo))
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse build log after line %d: %w", lineNo, err)
 	}
 
 	return log, nil
