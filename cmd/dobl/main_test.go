@@ -184,11 +184,13 @@ func TestRunSummaryTableFormat(t *testing.T) {
 		"DURATION",
 		"STEP",
 		"INSTRUCTION",
+		"NAME",
 		"OUTPUTS",
 		"#1",
 		"ERROR",
 		"build 1/2",
 		"RUN",
+		"[build 1/2] RUN echo hi",
 		"failed",
 	} {
 		if !strings.Contains(output, want) {
@@ -197,6 +199,36 @@ func TestRunSummaryTableFormat(t *testing.T) {
 	}
 	if strings.Contains(output, "{") || strings.Contains(output, "}") {
 		t.Fatalf("table output looks like json: %q", output)
+	}
+}
+
+func TestRunSummaryTableTruncatesLongErrors(t *testing.T) {
+	longError := strings.Repeat("x", tableErrorWidth+20)
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--format", "table"}, strings.NewReader("#1 ERROR: "+longError+"\n"), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	if strings.Contains(output, longError) {
+		t.Fatalf("table output contains untruncated error: %q", output)
+	}
+	if !strings.Contains(output, strings.Repeat("x", tableErrorWidth-3)+"...") {
+		t.Fatalf("table output missing truncated error: %q", output)
+	}
+}
+
+func TestRunSummaryTableWideKeepsLongErrors(t *testing.T) {
+	longError := strings.Repeat("x", tableErrorWidth+20)
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--format", "table", "--wide"}, strings.NewReader("#1 ERROR: "+longError+"\n"), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	if !strings.Contains(out.String(), longError) {
+		t.Fatalf("wide table output missing full error: %q", out.String())
 	}
 }
 
@@ -302,6 +334,7 @@ func TestRunSummaryTableRejectsJSONOnlyOptions(t *testing.T) {
 	tests := [][]string{
 		{"dobl", "summary", "--format", "table", "--events"},
 		{"dobl", "summary", "--format", "table", "--compact"},
+		{"dobl", "summary", "--wide"},
 	}
 
 	for _, args := range tests {

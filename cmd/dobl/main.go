@@ -15,6 +15,8 @@ import (
 const (
 	formatJSON  = "json"
 	formatTable = "table"
+
+	tableErrorWidth = 96
 )
 
 func main() {
@@ -41,6 +43,7 @@ type summaryCmd struct {
 	Failed  bool   `help:"Only include failed steps."`
 	Format  string `default:"json" enum:"json,table" help:"Output format."`
 	Status  string `placeholder:"STATUS" help:"Only include steps with this status. One of: DONE, CACHED, ERROR, CANCELED, WARNING, PROGRESS."`
+	Wide    bool   `help:"Do not truncate table error details."`
 	File    string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
 }
 
@@ -54,6 +57,7 @@ func (c *summaryCmd) Help() string {
 	return `Examples:
   dobl summary build.log
   dobl summary --format table build.log
+  dobl summary --format table --wide build.log
   dobl summary --failed --format table build.log
   dobl summary --status ERROR build.log`
 }
@@ -103,7 +107,7 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 	case formatJSON:
 		return encodeJSON(ctx.stdout, steps, c.Compact)
 	case formatTable:
-		return encodeSummaryTable(ctx.stdout, steps)
+		return encodeSummaryTable(ctx.stdout, steps, c.Wide)
 	default:
 		return fmt.Errorf("summary format %q is not supported", c.Format)
 	}
@@ -123,6 +127,8 @@ func (c *summaryCmd) validate() error {
 		if c.Compact {
 			return fmt.Errorf("--compact is only supported with --format=json")
 		}
+	} else if c.Wide {
+		return fmt.Errorf("--wide is only supported with --format=table")
 	}
 	return nil
 }
@@ -241,23 +247,28 @@ func encodeJSON(stdout io.Writer, output any, compact bool) error {
 	return encoder.Encode(output)
 }
 
-func encodeSummaryTable(stdout io.Writer, steps []dobl.Step) error {
+func encodeSummaryTable(stdout io.Writer, steps []dobl.Step, wide bool) error {
 	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
-	if _, err := fmt.Fprintln(writer, "ID\tSTATUS\tDURATION\tSTEP\tINSTRUCTION\tOUTPUTS\tPROGRESS\tERROR"); err != nil {
+	if _, err := fmt.Fprintln(writer, "ID\tSTATUS\tDURATION\tSTEP\tINSTRUCTION\tNAME\tOUTPUTS\tPROGRESS\tERROR"); err != nil {
 		return err
 	}
 	for _, step := range steps {
+		errorDetail := step.ErrorDetail
+		if !wide {
+			errorDetail = truncateString(errorDetail, tableErrorWidth)
+		}
 		if _, err := fmt.Fprintf(
 			writer,
-			"%s\t%s\t%s\t%s\t%s\t%d\t%d\t%s\n",
+			"%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d\t%s\n",
 			step.ID,
 			step.Status,
 			step.Duration,
 			formatStepIndex(step),
 			step.Instruction,
+			step.Name,
 			step.OutputCount,
 			step.ProgressCount,
-			step.ErrorDetail,
+			errorDetail,
 		); err != nil {
 			return err
 		}
@@ -274,4 +285,14 @@ func formatStepIndex(step dobl.Step) string {
 		return index
 	}
 	return strings.Join([]string{step.Stage, index}, " ")
+}
+
+func truncateString(value string, maxWidth int) string {
+	if maxWidth <= 0 || len(value) <= maxWidth {
+		return value
+	}
+	if maxWidth <= 3 {
+		return value[:maxWidth]
+	}
+	return value[:maxWidth-3] + "..."
 }
