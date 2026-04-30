@@ -30,6 +30,7 @@ Emit a human-readable summary table:
 
 ```sh
 dobl summary --format table build.log
+dobl summary --format table --wide build.log
 ```
 
 Show only failed steps:
@@ -44,6 +45,14 @@ Filter steps by status:
 ```sh
 dobl summary --status ERROR build.log
 dobl summary --status WARNING --format table build.log
+```
+
+Filter steps by Dockerfile metadata or BuildKit step ID:
+
+```sh
+dobl summary --stage build build.log
+dobl summary --instruction RUN build.log
+dobl summary --step '#3' --format table build.log
 ```
 
 Include each step's source events in the summary:
@@ -79,11 +88,14 @@ The default format is `json`. `dobl parse` currently supports `--format json`;
 `dobl summary --format table build.log` emits a readable table:
 
 ```text
-ID  STATUS  DURATION  STEP  INSTRUCTION  OUTPUTS  PROGRESS  ERROR
-#1  DONE    0.0s                         0        1
-#2  DONE    0.4s                         0        0
-#3  ERROR             1/1   RUN          2        0         process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
+ID  STATUS  DURATION  STEP  INSTRUCTION  NAME                                              OUTPUTS  PROGRESS  ERROR
+#1  DONE    0.0s                         [internal] load build definition from Dockerfile  0        1
+#2  DONE    0.4s                         [internal] load metadata for ...                 0        0
+#3  ERROR             1/1   RUN          [1/1] RUN echo before && exit 1                  2        0         process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
 ```
+
+Table output truncates long error details by default. Use `--wide` to keep full
+error text.
 
 ## Library
 
@@ -133,8 +145,9 @@ Implemented:
 - event JSON output
 - step summary JSON output
 - step summary table output
+- summary filters for status, failure, stage, instruction, and step ID
 - fixtures for success, cache, error, warning, cancellation, metadata failure,
-  and interleaved BuildKit logs
+  interleaved BuildKit logs, and CI/log-collector prefixes
 
 Not implemented yet:
 
