@@ -142,6 +142,12 @@ Not implemented yet:
 - `--progress=rawjson`
 - terminal or HTML visualization
 
+## Development
+
+This project is primarily developed with OpenAI Codex. Most implementation,
+testing, and documentation work is delegated to Codex, with human review and
+direction.
+
 ## License
 
 MIT
