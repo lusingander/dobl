@@ -1,2 +1,79 @@
 # Dobl
 
+Dobl parses plain Docker BuildKit build logs into JSON that can be inspected,
+summarized, and eventually visualized.
+
+The current target is `docker build` / `docker buildx build` output produced
+with `--progress=plain`.
+
+## Usage
+
+Parse a build log into line-oriented events:
+
+```sh
+docker buildx build --progress=plain . 2>&1 | dobl parse
+```
+
+Read from a file:
+
+```sh
+dobl parse build.log
+```
+
+Summarize events by BuildKit step:
+
+```sh
+dobl summary build.log
+```
+
+Include each step's source events in the summary:
+
+```sh
+dobl summary --events build.log
+```
+
+Emit compact JSON:
+
+```sh
+dobl parse --compact build.log
+dobl summary --compact build.log
+```
+
+## Library
+
+```go
+log, err := dobl.Parse(r)
+if err != nil {
+    // handle error
+}
+
+events := log.Events
+steps := log.Steps()
+```
+
+`Parse` keeps unknown lines as `unknown` events instead of dropping them. This
+is intentional because BuildKit plain output is human-readable text and may
+vary across Docker versions or CI environments.
+
+## Current IR
+
+- `BuildLog.Events` preserves the original line order.
+- `Event.Raw` keeps the original line.
+- `Event.Kind` is one of `step_start`, `step_status`, `step_output`, or
+  `unknown`.
+- `BuildLog.Steps()` groups events by BuildKit step id in first-seen order.
+
+## Scope
+
+Implemented:
+
+- non-streaming `--progress=plain` parsing
+- event JSON output
+- step summary JSON output
+- fixtures for success, cache, error, and interleaved BuildKit logs
+
+Not implemented yet:
+
+- streaming parsing
+- `--progress=rawjson`
+- terminal or HTML visualization
