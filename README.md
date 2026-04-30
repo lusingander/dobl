@@ -76,6 +76,8 @@ input line.
 - `BuildLog.Steps()` groups events by BuildKit step id in first-seen order.
   Each step includes output, progress, and unknown event counts, plus
   `error_detail` for the latest error status with detail text.
+- Dockerfile step names such as `[build 1/3] RUN ...` are summarized into
+  `stage`, `index`, `total`, and `instruction` fields when present.
 
 ## Scope
 

@@ -86,6 +86,9 @@ func TestRunSummaryIncludesStepMetadata(t *testing.T) {
 	var decoded []struct {
 		OutputCount int    `json:"output_count"`
 		ErrorDetail string `json:"error_detail"`
+		Index       int    `json:"index"`
+		Total       int    `json:"total"`
+		Instruction string `json:"instruction"`
 	}
 	if err := json.Unmarshal(out.Bytes(), &decoded); err != nil {
 		t.Fatalf("invalid json output: %v", err)
@@ -99,6 +102,9 @@ func TestRunSummaryIncludesStepMetadata(t *testing.T) {
 	}
 	if decoded[0].ErrorDetail != "failed" {
 		t.Fatalf("error detail = %q, want failed", decoded[0].ErrorDetail)
+	}
+	if decoded[0].Index != 1 || decoded[0].Total != 1 || decoded[0].Instruction != "RUN" {
+		t.Fatalf("unexpected step metadata: %+v", decoded[0])
 	}
 }
 

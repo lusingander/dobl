@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -74,6 +75,7 @@ func (s *Step) applyEvent(event Event) {
 	case EventStepStart:
 		if s.Name == "" {
 			s.Name = event.Detail
+			s.applyNameMetadata(event.Detail)
 		}
 	case EventStepStatus:
 		if event.Status == EventStatusProgress {
@@ -99,6 +101,27 @@ func (s *Step) applyEvent(event Event) {
 	}
 }
 
+func (s *Step) applyNameMetadata(name string) {
+	match := dockerfileStepNameRE.FindStringSubmatch(name)
+	if match == nil {
+		return
+	}
+
+	index, err := strconv.Atoi(match[2])
+	if err != nil {
+		return
+	}
+	total, err := strconv.Atoi(match[3])
+	if err != nil {
+		return
+	}
+
+	s.Stage = match[1]
+	s.Index = index
+	s.Total = total
+	s.Instruction = match[4]
+}
+
 // Step is an aggregate view of all events with the same BuildKit step ID.
 type Step struct {
 	ID            string      `json:"id"`
@@ -106,6 +129,10 @@ type Step struct {
 	Status        EventStatus `json:"status,omitempty"`
 	Duration      string      `json:"duration,omitempty"`
 	DurationNanos *int64      `json:"duration_nanos,omitempty"`
+	Stage         string      `json:"stage,omitempty"`
+	Index         int         `json:"index,omitempty"`
+	Total         int         `json:"total,omitempty"`
+	Instruction   string      `json:"instruction,omitempty"`
 	OutputCount   int         `json:"output_count"`
 	ProgressCount int         `json:"progress_count"`
 	UnknownCount  int         `json:"unknown_count"`
@@ -136,13 +163,14 @@ type Event struct {
 }
 
 var (
-	ansiEscapeRE   = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]`)
-	ciTimestampRE  = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\s+`)
-	stepLineRE     = regexp.MustCompile(`^#(\d+)\s*(.*)$`)
-	stepStartRE    = regexp.MustCompile(`^\[[^\]]+\]\s+.+$`)
-	stepStatusRE   = regexp.MustCompile(`^(DONE|CACHED|ERROR|CANCELED|WARNING)(?::\s*(.*)|\s+(.+))?$`)
-	stepOutputRE   = regexp.MustCompile(`^\d+(?:\.\d+)?\s+.+$`)
-	durationTailRE = regexp.MustCompile(`\b(\d+(?:\.\d+)?(?:ns|us|µs|ms|s|m|h))\b(?:\s+done)?$`)
+	ansiEscapeRE         = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]`)
+	ciTimestampRE        = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\s+`)
+	dockerfileStepNameRE = regexp.MustCompile(`^\[(?:(.+)\s+)?(\d+)/(\d+)\]\s+(\S+)`)
+	stepLineRE           = regexp.MustCompile(`^#(\d+)\s*(.*)$`)
+	stepStartRE          = regexp.MustCompile(`^\[[^\]]+\]\s+.+$`)
+	stepStatusRE         = regexp.MustCompile(`^(DONE|CACHED|ERROR|CANCELED|WARNING)(?::\s*(.*)|\s+(.+))?$`)
+	stepOutputRE         = regexp.MustCompile(`^\d+(?:\.\d+)?\s+.+$`)
+	durationTailRE       = regexp.MustCompile(`\b(\d+(?:\.\d+)?(?:ns|us|µs|ms|s|m|h))\b(?:\s+done)?$`)
 )
 
 // Parse reads a complete docker build/buildx --progress=plain log and returns

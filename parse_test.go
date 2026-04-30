@@ -173,6 +173,7 @@ func TestBuildLogSteps(t *testing.T) {
 		t.Fatalf("last step status = %q, want DONE", last.Status)
 	}
 	assertStepCounts(t, last, 0, 1, 0)
+	assertStepNameMetadata(t, last, "", 0, 0, "")
 	if last.StartLine != 14 || last.EndLine != 16 {
 		t.Fatalf("last step lines = %d-%d, want 14-16", last.StartLine, last.EndLine)
 	}
@@ -204,6 +205,7 @@ func TestBuildLogStepsInterleavedFixture(t *testing.T) {
 	if step3.Name != "[build 1/3] RUN go mod download" {
 		t.Fatalf("step #3 name = %q", step3.Name)
 	}
+	assertStepNameMetadata(t, step3, "build", 1, 3, "RUN")
 	if step3.Status != EventStatusDone {
 		t.Fatalf("step #3 status = %q, want DONE", step3.Status)
 	}
@@ -224,6 +226,7 @@ func TestBuildLogStepsInterleavedFixture(t *testing.T) {
 	}
 
 	step5 := findStep(t, steps, "#5")
+	assertStepNameMetadata(t, step5, "stage-1", 1, 2, "COPY")
 	if step5.Status != EventStatusCached {
 		t.Fatalf("step #5 status = %q, want CACHED", step5.Status)
 	}
@@ -235,6 +238,27 @@ func TestBuildLogStepsInterleavedFixture(t *testing.T) {
 	if step8.Status != EventStatusDone {
 		t.Fatalf("step #8 status = %q, want DONE", step8.Status)
 	}
+}
+
+func TestBuildLogStepsDockerfileStepMetadata(t *testing.T) {
+	input := strings.NewReader(strings.Join([]string{
+		"#1 [internal] load build definition from Dockerfile",
+		"#1 DONE 0.0s",
+		"#2 [1/2] FROM docker.io/library/alpine:3.20",
+		"#2 DONE 0.0s",
+		"#3 [build 2/2] RUN echo hi",
+		"#3 DONE 0.1s",
+	}, "\n"))
+
+	log, err := Parse(input)
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	steps := log.Steps()
+	assertStepNameMetadata(t, findStep(t, steps, "#1"), "", 0, 0, "")
+	assertStepNameMetadata(t, findStep(t, steps, "#2"), "", 1, 2, "FROM")
+	assertStepNameMetadata(t, findStep(t, steps, "#3"), "build", 2, 2, "RUN")
 }
 
 func TestParseFixtures(t *testing.T) {
@@ -477,6 +501,23 @@ func assertStepCounts(t *testing.T, step Step, outputs, progress, unknowns int) 
 	}
 	if step.UnknownCount != unknowns {
 		t.Fatalf("step %s unknown count = %d, want %d", step.ID, step.UnknownCount, unknowns)
+	}
+}
+
+func assertStepNameMetadata(t *testing.T, step Step, stage string, index, total int, instruction string) {
+	t.Helper()
+
+	if step.Stage != stage {
+		t.Fatalf("step %s stage = %q, want %q", step.ID, step.Stage, stage)
+	}
+	if step.Index != index {
+		t.Fatalf("step %s index = %d, want %d", step.ID, step.Index, index)
+	}
+	if step.Total != total {
+		t.Fatalf("step %s total = %d, want %d", step.ID, step.Total, total)
+	}
+	if step.Instruction != instruction {
+		t.Fatalf("step %s instruction = %q, want %q", step.ID, step.Instruction, instruction)
 	}
 }
 
