@@ -16,9 +16,10 @@ func TestRunParseFromStdin(t *testing.T) {
 
 	var decoded struct {
 		Events []struct {
-			Kind   string `json:"kind"`
-			StepID string `json:"step_id"`
-			Status string `json:"status"`
+			Kind          string `json:"kind"`
+			StepID        string `json:"step_id"`
+			Status        string `json:"status"`
+			DurationNanos *int64 `json:"duration_nanos"`
 		} `json:"events"`
 	}
 	if err := json.Unmarshal(out.Bytes(), &decoded); err != nil {
@@ -31,6 +32,9 @@ func TestRunParseFromStdin(t *testing.T) {
 	if decoded.Events[0].Kind != "step_status" || decoded.Events[0].StepID != "#1" || decoded.Events[0].Status != "DONE" {
 		t.Fatalf("unexpected event: %+v", decoded.Events[0])
 	}
+	if decoded.Events[0].DurationNanos == nil || *decoded.Events[0].DurationNanos != 100_000_000 {
+		t.Fatalf("duration nanos = %v, want 100000000", decoded.Events[0].DurationNanos)
+	}
 }
 
 func TestRunSummaryFromStdin(t *testing.T) {
@@ -41,11 +45,12 @@ func TestRunSummaryFromStdin(t *testing.T) {
 	}
 
 	var decoded []struct {
-		ID       string `json:"id"`
-		Name     string `json:"name"`
-		Status   string `json:"status"`
-		Duration string `json:"duration"`
-		Events   []any  `json:"events"`
+		ID            string `json:"id"`
+		Name          string `json:"name"`
+		Status        string `json:"status"`
+		Duration      string `json:"duration"`
+		DurationNanos *int64 `json:"duration_nanos"`
+		Events        []any  `json:"events"`
 	}
 	if err := json.Unmarshal(out.Bytes(), &decoded); err != nil {
 		t.Fatalf("invalid json output: %v", err)
@@ -56,6 +61,9 @@ func TestRunSummaryFromStdin(t *testing.T) {
 	}
 	if decoded[0].ID != "#1" || decoded[0].Status != "DONE" || decoded[0].Duration != "0.1s" {
 		t.Fatalf("unexpected step: %+v", decoded[0])
+	}
+	if decoded[0].DurationNanos == nil || *decoded[0].DurationNanos != 100_000_000 {
+		t.Fatalf("duration nanos = %v, want 100000000", decoded[0].DurationNanos)
 	}
 	if decoded[0].Events != nil {
 		t.Fatalf("events = %#v, want nil", decoded[0].Events)

@@ -63,6 +63,8 @@ vary across Docker versions or CI environments.
   `unknown`.
 - `Event.Status` uses typed constants for `DONE`, `CACHED`, `ERROR`,
   `CANCELED`, `WARNING`, and parser-generated `PROGRESS`.
+- `Event.Duration` preserves the original duration text; `Event.DurationNanos`
+  contains the parsed duration in nanoseconds when parsing succeeds.
 - `Event.Detail` keeps the meaningful text after the BuildKit step ID when it
   is not already represented by status or duration. For example, it stores step
   names, progress text, error/warning messages, and command output.

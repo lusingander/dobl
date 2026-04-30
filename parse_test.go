@@ -55,8 +55,9 @@ func TestParseLineKnownStatuses(t *testing.T) {
 		status   EventStatus
 		detail   string
 		duration string
+		nanos    *int64
 	}{
-		{line: "#1 DONE 0.1s", status: EventStatusDone, duration: "0.1s"},
+		{line: "#1 DONE 0.1s", status: EventStatusDone, duration: "0.1s", nanos: durationNanos(100_000_000)},
 		{line: "#2 CACHED", status: EventStatusCached},
 		{line: "#3 ERROR: failed to solve", status: EventStatusError, detail: "failed to solve"},
 		{line: "#4 CANCELED", status: EventStatusCanceled},
@@ -69,6 +70,32 @@ func TestParseLineKnownStatuses(t *testing.T) {
 			event := ParseLine(tt.line, 1)
 
 			assertEvent(t, event, EventStepStatus, strings.Fields(tt.line)[0], tt.status, tt.detail, tt.duration)
+			assertDurationNanos(t, event.DurationNanos, tt.nanos)
+		})
+	}
+}
+
+func TestParseLineDurationNanos(t *testing.T) {
+	tests := []struct {
+		line     string
+		duration string
+		nanos    int64
+	}{
+		{line: "#1 DONE 0.0s", duration: "0.0s", nanos: 0},
+		{line: "#2 DONE 1.5s", duration: "1.5s", nanos: 1_500_000_000},
+		{line: "#3 transferring context: 32B 250ms done", duration: "250ms", nanos: 250_000_000},
+		{line: "#4 DONE 12µs", duration: "12µs", nanos: 12_000},
+		{line: "#5 DONE 12us", duration: "12us", nanos: 12_000},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.duration, func(t *testing.T) {
+			event := ParseLine(tt.line, 1)
+
+			if event.Duration != tt.duration {
+				t.Fatalf("duration = %q, want %q", event.Duration, tt.duration)
+			}
+			assertDurationNanos(t, event.DurationNanos, durationNanos(tt.nanos))
 		})
 	}
 }
@@ -103,6 +130,7 @@ func TestBuildLogSteps(t *testing.T) {
 	if first.Duration != "0.0s" {
 		t.Fatalf("first step duration = %q, want 0.0s", first.Duration)
 	}
+	assertDurationNanos(t, first.DurationNanos, durationNanos(0))
 	if first.StartLine != 1 || first.EndLine != 3 {
 		t.Fatalf("first step lines = %d-%d, want 1-3", first.StartLine, first.EndLine)
 	}
@@ -349,4 +377,22 @@ func assertEvent(t *testing.T, event Event, kind EventKind, stepID string, statu
 	if event.Duration != duration {
 		t.Fatalf("duration = %q, want %q", event.Duration, duration)
 	}
+}
+
+func assertDurationNanos(t *testing.T, got, want *int64) {
+	t.Helper()
+
+	if got == nil || want == nil {
+		if got != want {
+			t.Fatalf("duration nanos = %v, want %v", got, want)
+		}
+		return
+	}
+	if *got != *want {
+		t.Fatalf("duration nanos = %d, want %d", *got, *want)
+	}
+}
+
+func durationNanos(nanos int64) *int64 {
+	return &nanos
 }

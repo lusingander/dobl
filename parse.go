@@ -5,6 +5,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"time"
 )
 
 // EventKind identifies the parsed role of a plain BuildKit progress line.
@@ -71,6 +72,9 @@ func (l *BuildLog) Steps() []Step {
 		if event.Duration != "" {
 			step.Duration = event.Duration
 		}
+		if event.DurationNanos != nil {
+			step.DurationNanos = event.DurationNanos
+		}
 	}
 
 	return steps
@@ -78,13 +82,14 @@ func (l *BuildLog) Steps() []Step {
 
 // Step is an aggregate view of all events with the same BuildKit step ID.
 type Step struct {
-	ID        string      `json:"id"`
-	Name      string      `json:"name,omitempty"`
-	Status    EventStatus `json:"status,omitempty"`
-	Duration  string      `json:"duration,omitempty"`
-	StartLine int         `json:"start_line"`
-	EndLine   int         `json:"end_line"`
-	Events    []Event     `json:"events,omitempty"`
+	ID            string      `json:"id"`
+	Name          string      `json:"name,omitempty"`
+	Status        EventStatus `json:"status,omitempty"`
+	Duration      string      `json:"duration,omitempty"`
+	DurationNanos *int64      `json:"duration_nanos,omitempty"`
+	StartLine     int         `json:"start_line"`
+	EndLine       int         `json:"end_line"`
+	Events        []Event     `json:"events,omitempty"`
 }
 
 // Event is one parsed line from a docker build/buildx --progress=plain log.
@@ -97,13 +102,14 @@ type Step struct {
 //   - EventStepOutput: the command output line after the step ID.
 //   - EventUnknown: empty.
 type Event struct {
-	Line     int         `json:"line"`
-	Kind     EventKind   `json:"kind"`
-	Raw      string      `json:"raw"`
-	StepID   string      `json:"step_id,omitempty"`
-	Detail   string      `json:"detail,omitempty"`
-	Status   EventStatus `json:"status,omitempty"`
-	Duration string      `json:"duration,omitempty"`
+	Line          int         `json:"line"`
+	Kind          EventKind   `json:"kind"`
+	Raw           string      `json:"raw"`
+	StepID        string      `json:"step_id,omitempty"`
+	Detail        string      `json:"detail,omitempty"`
+	Status        EventStatus `json:"status,omitempty"`
+	Duration      string      `json:"duration,omitempty"`
+	DurationNanos *int64      `json:"duration_nanos,omitempty"`
 }
 
 var (
@@ -173,6 +179,9 @@ func ParseLine(raw string, lineNo int) Event {
 	if event.Duration == "" {
 		event.Duration = extractDuration(detail)
 	}
+	if event.Duration != "" {
+		event.DurationNanos = parseDurationNanos(event.Duration)
+	}
 
 	return event
 }
@@ -226,4 +235,13 @@ func extractDuration(detail string) string {
 		return ""
 	}
 	return match[1]
+}
+
+func parseDurationNanos(raw string) *int64 {
+	duration, err := time.ParseDuration(raw)
+	if err != nil {
+		return nil
+	}
+	nanos := duration.Nanoseconds()
+	return &nanos
 }
