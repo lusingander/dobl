@@ -40,8 +40,22 @@ type summaryCmd struct {
 	Events  bool   `help:"Include source events in each step."`
 	Failed  bool   `help:"Only include failed steps."`
 	Format  string `default:"json" enum:"json,table" help:"Output format."`
-	Status  string `help:"Only include steps with this status."`
+	Status  string `placeholder:"STATUS" help:"Only include steps with this status. One of: DONE, CACHED, ERROR, CANCELED, WARNING, PROGRESS."`
 	File    string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
+}
+
+func (c *parseCmd) Help() string {
+	return `Examples:
+  dobl parse build.log
+  docker buildx build --progress=plain . 2>&1 | dobl parse --compact`
+}
+
+func (c *summaryCmd) Help() string {
+	return `Examples:
+  dobl summary build.log
+  dobl summary --format table build.log
+  dobl summary --failed --format table build.log
+  dobl summary --status ERROR build.log`
 }
 
 type runContext struct {
@@ -63,23 +77,20 @@ func (c *parseCmd) Run(ctx *runContext) error {
 }
 
 func (c *summaryCmd) Run(ctx *runContext) error {
+	if err := c.validate(); err != nil {
+		return err
+	}
+
 	log, err := parseInput(c.File, ctx.stdin)
 	if err != nil {
 		return err
 	}
-
 	steps := log.Steps()
-	if c.Failed && c.Status != "" {
-		return fmt.Errorf("--failed and --status cannot be used together")
-	}
 	if c.Failed {
 		steps = filterFailedSteps(steps)
 	}
 	if c.Status != "" {
 		status := dobl.EventStatus(c.Status)
-		if !isKnownStatus(status) {
-			return fmt.Errorf("unknown status %q", c.Status)
-		}
 		steps = filterStepsByStatus(steps, status)
 	}
 	if !c.Events {
@@ -92,16 +103,28 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 	case formatJSON:
 		return encodeJSON(ctx.stdout, steps, c.Compact)
 	case formatTable:
+		return encodeSummaryTable(ctx.stdout, steps)
+	default:
+		return fmt.Errorf("summary format %q is not supported", c.Format)
+	}
+}
+
+func (c *summaryCmd) validate() error {
+	if c.Failed && c.Status != "" {
+		return fmt.Errorf("--failed and --status cannot be used together")
+	}
+	if c.Status != "" && !isKnownStatus(dobl.EventStatus(c.Status)) {
+		return fmt.Errorf("unknown status %q", c.Status)
+	}
+	if c.Format == formatTable {
 		if c.Events {
 			return fmt.Errorf("--events is only supported with --format=json")
 		}
 		if c.Compact {
 			return fmt.Errorf("--compact is only supported with --format=json")
 		}
-		return encodeSummaryTable(ctx.stdout, steps)
-	default:
-		return fmt.Errorf("summary format %q is not supported", c.Format)
 	}
+	return nil
 }
 
 func filterFailedSteps(steps []dobl.Step) []dobl.Step {
@@ -142,13 +165,32 @@ func isKnownStatus(status dobl.EventStatus) bool {
 	}
 }
 
-func run(args []string, stdin io.Reader, stdout io.Writer) error {
+type kongExit int
+
+func run(args []string, stdin io.Reader, stdout io.Writer) (err error) {
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			return
+		}
+		exitCode, ok := recovered.(kongExit)
+		if !ok {
+			panic(recovered)
+		}
+		if exitCode != 0 {
+			err = fmt.Errorf("exit %d", exitCode)
+		}
+	}()
+
 	var app cli
 	parser, err := kong.New(
 		&app,
 		kong.Name("dobl"),
 		kong.Description("Parse and summarize plain Docker BuildKit build logs."),
-		kong.Writers(io.Discard, io.Discard),
+		kong.Writers(stdout, io.Discard),
+		kong.Exit(func(code int) {
+			panic(kongExit(code))
+		}),
 		kong.Bind(&runContext{stdin: stdin, stdout: stdout}),
 	)
 	if err != nil {

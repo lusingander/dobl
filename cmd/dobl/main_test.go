@@ -57,6 +57,62 @@ func TestRunParseExplicitJSONFormat(t *testing.T) {
 	}
 }
 
+func TestRunHelp(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "--help"}, strings.NewReader(""), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	for _, want := range []string{
+		"Usage: dobl",
+		"Parse and summarize plain Docker BuildKit build logs.",
+		"parse",
+		"summary",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("help output %q does not contain %q", output, want)
+		}
+	}
+}
+
+func TestRunCommandHelp(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{
+			name: "parse",
+			args: []string{"dobl", "parse", "--help"},
+			want: []string{"Usage: dobl parse", "dobl parse build.log", "--compact"},
+		},
+		{
+			name: "summary",
+			args: []string{"dobl", "summary", "--help"},
+			want: []string{"Usage: dobl summary", "dobl summary --format table build.log", "--status", "ERROR"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+			err := run(tt.args, strings.NewReader(""), &out)
+			if err != nil {
+				t.Fatalf("run returned error: %v", err)
+			}
+
+			output := out.String()
+			for _, want := range tt.want {
+				if !strings.Contains(output, want) {
+					t.Fatalf("help output %q does not contain %q", output, want)
+				}
+			}
+		})
+	}
+}
+
 func TestRunSummaryFromStdin(t *testing.T) {
 	var out bytes.Buffer
 	err := run([]string{"dobl", "summary"}, strings.NewReader("#1 [internal] load build definition from Dockerfile\n#1 DONE 0.1s\n"), &out)
@@ -256,6 +312,20 @@ func TestRunSummaryTableRejectsJSONOnlyOptions(t *testing.T) {
 				t.Fatal("run returned nil error")
 			}
 		})
+	}
+}
+
+func TestRunSummaryValidatesOptionsBeforeInput(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--format", "table", "--events", "missing.log"}, strings.NewReader(""), &out)
+	if err == nil {
+		t.Fatal("run returned nil error")
+	}
+	if !strings.Contains(err.Error(), "--events is only supported with --format=json") {
+		t.Fatalf("error = %q, want option validation error", err)
+	}
+	if strings.Contains(err.Error(), "missing.log") {
+		t.Fatalf("error = %q, unexpectedly opened input before validating options", err)
 	}
 }
 
