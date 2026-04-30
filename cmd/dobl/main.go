@@ -174,13 +174,21 @@ func parseInput(fileName string, stdin io.Reader) (*dobl.BuildLog, error) {
 		var err error
 		file, err = os.Open(fileName)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("open %s: %w", fileName, err)
 		}
 		defer file.Close()
 		input = file
 	}
 
-	return dobl.Parse(input)
+	log, err := dobl.Parse(input)
+	if err != nil {
+		source := "stdin"
+		if fileName != "" {
+			source = fileName
+		}
+		return nil, fmt.Errorf("parse %s: %w", source, err)
+	}
+	return log, nil
 }
 
 func encodeJSON(stdout io.Writer, output any, compact bool) error {

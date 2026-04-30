@@ -352,6 +352,31 @@ func TestRunRejectsUnknownStatus(t *testing.T) {
 	}
 }
 
+func TestRunParseReportsInputContext(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "parse"}, strings.NewReader(strings.Repeat("x", 1024*1024+1)), &out)
+	if err == nil {
+		t.Fatal("run returned nil error")
+	}
+	if !strings.Contains(err.Error(), "parse stdin") {
+		t.Fatalf("error = %q, want stdin context", err)
+	}
+	if !strings.Contains(err.Error(), "token too long") {
+		t.Fatalf("error = %q, want scanner cause", err)
+	}
+}
+
+func TestRunParseReportsOpenContext(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "parse", "missing.log"}, strings.NewReader(""), &out)
+	if err == nil {
+		t.Fatal("run returned nil error")
+	}
+	if !strings.Contains(err.Error(), "open missing.log") {
+		t.Fatalf("error = %q, want file context", err)
+	}
+}
+
 func TestRunRejectsUnknownCommand(t *testing.T) {
 	var out bytes.Buffer
 	err := run([]string{"dobl", "unknown"}, strings.NewReader(""), &out)
