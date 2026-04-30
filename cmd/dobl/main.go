@@ -2,16 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/alecthomas/kong"
 	"github.com/lusingander/dobl"
 )
-
-const usage = "usage: dobl parse [--compact] [file]\n       dobl summary [--compact] [--events] [file]"
 
 func main() {
 	if err := run(os.Args, os.Stdin, os.Stdout); err != nil {
@@ -20,71 +17,83 @@ func main() {
 	}
 }
 
-func run(args []string, stdin io.Reader, stdout io.Writer) error {
-	if len(args) < 2 {
-		return errors.New(usage)
-	}
-
-	switch args[1] {
-	case "parse":
-		return runParse(args[2:], stdin, stdout)
-	case "summary":
-		return runSummary(args[2:], stdin, stdout)
-	default:
-		return errors.New(usage)
-	}
+type cli struct {
+	Parse   parseCmd   `cmd:"" help:"Parse a plain build log into event JSON."`
+	Summary summaryCmd `cmd:"" help:"Summarize a plain build log by BuildKit step."`
 }
 
-func runParse(args []string, stdin io.Reader, stdout io.Writer) error {
-	flags := flag.NewFlagSet("parse", flag.ContinueOnError)
-	flags.SetOutput(io.Discard)
-	compact := flags.Bool("compact", false, "emit compact JSON")
-	if err := flags.Parse(args); err != nil {
-		return err
-	}
+type parseCmd struct {
+	Compact bool   `help:"Emit compact JSON."`
+	File    string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
+}
 
-	log, err := parseInput(flags.Args(), stdin)
+type summaryCmd struct {
+	Compact bool   `help:"Emit compact JSON."`
+	Events  bool   `help:"Include source events in each step."`
+	File    string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
+}
+
+type runContext struct {
+	stdin  io.Reader
+	stdout io.Writer
+}
+
+func (c *parseCmd) Run(ctx *runContext) error {
+	log, err := parseInput(c.File, ctx.stdin)
 	if err != nil {
 		return err
 	}
 
-	return encodeJSON(stdout, log, *compact)
+	return encodeJSON(ctx.stdout, log, c.Compact)
 }
 
-func runSummary(args []string, stdin io.Reader, stdout io.Writer) error {
-	flags := flag.NewFlagSet("summary", flag.ContinueOnError)
-	flags.SetOutput(io.Discard)
-	compact := flags.Bool("compact", false, "emit compact JSON")
-	includeEvents := flags.Bool("events", false, "include step events")
-	if err := flags.Parse(args); err != nil {
-		return err
-	}
-
-	log, err := parseInput(flags.Args(), stdin)
+func (c *summaryCmd) Run(ctx *runContext) error {
+	log, err := parseInput(c.File, ctx.stdin)
 	if err != nil {
 		return err
 	}
 
 	steps := log.Steps()
-	if !*includeEvents {
+	if !c.Events {
 		for i := range steps {
 			steps[i].Events = nil
 		}
 	}
 
-	return encodeJSON(stdout, steps, *compact)
+	return encodeJSON(ctx.stdout, steps, c.Compact)
 }
 
-func parseInput(args []string, stdin io.Reader) (*dobl.BuildLog, error) {
-	if len(args) > 1 {
-		return nil, errors.New(usage)
+func run(args []string, stdin io.Reader, stdout io.Writer) error {
+	var app cli
+	parser, err := kong.New(
+		&app,
+		kong.Name("dobl"),
+		kong.Description("Parse and summarize plain Docker BuildKit build logs."),
+		kong.Writers(io.Discard, io.Discard),
+		kong.Bind(&runContext{stdin: stdin, stdout: stdout}),
+	)
+	if err != nil {
+		return err
+	}
+
+	ctx, err := parser.Parse(args[1:])
+	if err != nil {
+		return err
+	}
+
+	return ctx.Run()
+}
+
+func parseInput(fileName string, stdin io.Reader) (*dobl.BuildLog, error) {
+	if fileName == "-" {
+		fileName = ""
 	}
 
 	var input io.Reader = stdin
 	var file *os.File
-	if len(args) == 1 && args[0] != "-" {
+	if fileName != "" {
 		var err error
-		file, err = os.Open(args[0])
+		file, err = os.Open(fileName)
 		if err != nil {
 			return nil, err
 		}
