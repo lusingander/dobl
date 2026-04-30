@@ -39,6 +39,13 @@ dobl summary --failed build.log
 dobl summary --failed --format table build.log
 ```
 
+Filter steps by status:
+
+```sh
+dobl summary --status ERROR build.log
+dobl summary --status WARNING --format table build.log
+```
+
 Include each step's source events in the summary:
 
 ```sh

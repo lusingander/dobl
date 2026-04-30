@@ -191,6 +191,57 @@ func TestRunSummaryFailedTable(t *testing.T) {
 	}
 }
 
+func TestRunSummaryStatusJSON(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--status", "WARNING"}, strings.NewReader(strings.Join([]string{
+		"#1 DONE 0.1s",
+		"#2 WARNING: cache import failed",
+		"#3 ERROR: failed",
+	}, "\n")), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	var decoded []struct {
+		ID     string `json:"id"`
+		Status string `json:"status"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &decoded); err != nil {
+		t.Fatalf("invalid json output: %v", err)
+	}
+
+	if len(decoded) != 1 {
+		t.Fatalf("step count = %d, want 1", len(decoded))
+	}
+	if decoded[0].ID != "#2" || decoded[0].Status != "WARNING" {
+		t.Fatalf("unexpected step: %+v", decoded[0])
+	}
+}
+
+func TestRunSummaryStatusTable(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--status", "CACHED", "--format", "table"}, strings.NewReader("#1 DONE 0.1s\n#2 CACHED\n"), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	if strings.Contains(output, "#1") {
+		t.Fatalf("table output contains filtered step: %q", output)
+	}
+	if !strings.Contains(output, "#2") || !strings.Contains(output, "CACHED") {
+		t.Fatalf("table output missing cached step: %q", output)
+	}
+}
+
+func TestRunSummaryRejectsFailedAndStatus(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--failed", "--status", "ERROR"}, strings.NewReader("#1 ERROR: failed\n"), &out)
+	if err == nil {
+		t.Fatal("run returned nil error")
+	}
+}
+
 func TestRunSummaryTableRejectsJSONOnlyOptions(t *testing.T) {
 	tests := [][]string{
 		{"dobl", "summary", "--format", "table", "--events"},
@@ -290,6 +341,14 @@ func TestRunRejectsUnknownFormat(t *testing.T) {
 				t.Fatal("run returned nil error")
 			}
 		})
+	}
+}
+
+func TestRunRejectsUnknownStatus(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--status", "SKIPPED"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	if err == nil {
+		t.Fatal("run returned nil error")
 	}
 }
 

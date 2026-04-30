@@ -40,6 +40,7 @@ type summaryCmd struct {
 	Events  bool   `help:"Include source events in each step."`
 	Failed  bool   `help:"Only include failed steps."`
 	Format  string `default:"json" enum:"json,table" help:"Output format."`
+	Status  string `help:"Only include steps with this status."`
 	File    string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
 }
 
@@ -68,8 +69,18 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 	}
 
 	steps := log.Steps()
+	if c.Failed && c.Status != "" {
+		return fmt.Errorf("--failed and --status cannot be used together")
+	}
 	if c.Failed {
 		steps = filterFailedSteps(steps)
+	}
+	if c.Status != "" {
+		status := dobl.EventStatus(c.Status)
+		if !isKnownStatus(status) {
+			return fmt.Errorf("unknown status %q", c.Status)
+		}
+		steps = filterStepsByStatus(steps, status)
 	}
 	if !c.Events {
 		for i := range steps {
@@ -105,6 +116,30 @@ func filterFailedSteps(steps []dobl.Step) []dobl.Step {
 
 func isFailedStatus(status dobl.EventStatus) bool {
 	return status == dobl.EventStatusError || status == dobl.EventStatusCanceled
+}
+
+func filterStepsByStatus(steps []dobl.Step, status dobl.EventStatus) []dobl.Step {
+	filtered := make([]dobl.Step, 0, len(steps))
+	for _, step := range steps {
+		if step.Status == status {
+			filtered = append(filtered, step)
+		}
+	}
+	return filtered
+}
+
+func isKnownStatus(status dobl.EventStatus) bool {
+	switch status {
+	case dobl.EventStatusDone,
+		dobl.EventStatusCached,
+		dobl.EventStatusError,
+		dobl.EventStatusCanceled,
+		dobl.EventStatusWarning,
+		dobl.EventStatusProgress:
+		return true
+	default:
+		return false
+	}
 }
 
 func run(args []string, stdin io.Reader, stdout io.Writer) error {
