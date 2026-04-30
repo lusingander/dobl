@@ -38,6 +38,7 @@ type parseCmd struct {
 type summaryCmd struct {
 	Compact bool   `help:"Emit compact JSON."`
 	Events  bool   `help:"Include source events in each step."`
+	Failed  bool   `help:"Only include failed steps."`
 	Format  string `default:"json" enum:"json,table" help:"Output format."`
 	File    string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
 }
@@ -67,6 +68,9 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 	}
 
 	steps := log.Steps()
+	if c.Failed {
+		steps = filterFailedSteps(steps)
+	}
 	if !c.Events {
 		for i := range steps {
 			steps[i].Events = nil
@@ -87,6 +91,20 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 	default:
 		return fmt.Errorf("summary format %q is not supported", c.Format)
 	}
+}
+
+func filterFailedSteps(steps []dobl.Step) []dobl.Step {
+	filtered := make([]dobl.Step, 0, len(steps))
+	for _, step := range steps {
+		if isFailedStatus(step.Status) {
+			filtered = append(filtered, step)
+		}
+	}
+	return filtered
+}
+
+func isFailedStatus(status dobl.EventStatus) bool {
+	return status == dobl.EventStatusError || status == dobl.EventStatusCanceled
 }
 
 func run(args []string, stdin io.Reader, stdout io.Writer) error {

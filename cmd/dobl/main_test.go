@@ -144,6 +144,53 @@ func TestRunSummaryTableFormat(t *testing.T) {
 	}
 }
 
+func TestRunSummaryFailedJSON(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--failed"}, strings.NewReader(strings.Join([]string{
+		"#1 DONE 0.1s",
+		"#2 WARNING: cache import failed",
+		"#3 ERROR: failed",
+		"#4 CANCELED",
+	}, "\n")), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	var decoded []struct {
+		ID     string `json:"id"`
+		Status string `json:"status"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &decoded); err != nil {
+		t.Fatalf("invalid json output: %v", err)
+	}
+
+	if len(decoded) != 2 {
+		t.Fatalf("step count = %d, want 2", len(decoded))
+	}
+	if decoded[0].ID != "#3" || decoded[0].Status != "ERROR" {
+		t.Fatalf("unexpected first failed step: %+v", decoded[0])
+	}
+	if decoded[1].ID != "#4" || decoded[1].Status != "CANCELED" {
+		t.Fatalf("unexpected second failed step: %+v", decoded[1])
+	}
+}
+
+func TestRunSummaryFailedTable(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--failed", "--format", "table"}, strings.NewReader("#1 DONE 0.1s\n#2 ERROR: failed\n"), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	if strings.Contains(output, "#1") {
+		t.Fatalf("table output contains non-failed step: %q", output)
+	}
+	if !strings.Contains(output, "#2") || !strings.Contains(output, "ERROR") {
+		t.Fatalf("table output missing failed step: %q", output)
+	}
+}
+
 func TestRunSummaryTableRejectsJSONOnlyOptions(t *testing.T) {
 	tests := [][]string{
 		{"dobl", "summary", "--format", "table", "--events"},

@@ -32,6 +32,13 @@ Emit a human-readable summary table:
 dobl summary --format table build.log
 ```
 
+Show only failed steps:
+
+```sh
+dobl summary --failed build.log
+dobl summary --failed --format table build.log
+```
+
 Include each step's source events in the summary:
 
 ```sh
