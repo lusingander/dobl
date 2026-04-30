@@ -267,6 +267,35 @@ func TestParseFixtures(t *testing.T) {
 			finalStatus:  EventStatusDone,
 			finalDuraton: "0.0s",
 		},
+		{
+			name:         "warning",
+			file:         "testdata/warning_plain.log",
+			events:       10,
+			starts:       5,
+			statuses:     5,
+			finalStepID:  "#5",
+			finalStatus:  EventStatusDone,
+			finalDuraton: "0.0s",
+		},
+		{
+			name:        "canceled",
+			file:        "testdata/canceled_plain.log",
+			events:      6,
+			starts:      3,
+			statuses:    3,
+			finalStepID: "#3",
+			finalStatus: EventStatusCanceled,
+		},
+		{
+			name:        "metadata_error",
+			file:        "testdata/metadata_error_plain.log",
+			events:      12,
+			starts:      2,
+			statuses:    2,
+			unknowns:    8,
+			finalStepID: "#2",
+			finalStatus: EventStatusError,
+		},
 	}
 
 	for _, tt := range tests {
@@ -312,6 +341,72 @@ func TestParseFixtures(t *testing.T) {
 			}
 			if final.Duration != tt.finalDuraton {
 				t.Fatalf("final duration = %q, want %q", final.Duration, tt.finalDuraton)
+			}
+		})
+	}
+}
+
+func TestBuildLogStepsFailureFixtures(t *testing.T) {
+	tests := []struct {
+		name         string
+		file         string
+		stepID       string
+		status       EventStatus
+		nameDetail   string
+		statusDetail string
+	}{
+		{
+			name:         "warning",
+			file:         "testdata/warning_plain.log",
+			stepID:       "#2",
+			status:       EventStatusWarning,
+			nameDetail:   "importing cache manifest from local:cache",
+			statusDetail: "local cache import failed",
+		},
+		{
+			name:       "canceled",
+			file:       "testdata/canceled_plain.log",
+			stepID:     "#3",
+			status:     EventStatusCanceled,
+			nameDetail: "[build 1/2] RUN sleep 30",
+		},
+		{
+			name:         "metadata_error",
+			file:         "testdata/metadata_error_plain.log",
+			stepID:       "#2",
+			status:       EventStatusError,
+			nameDetail:   "[internal] load metadata for docker.io/library/missing:latest",
+			statusDetail: "failed to resolve source metadata for docker.io/library/missing:latest: not found",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input, err := os.Open(tt.file)
+			if err != nil {
+				t.Fatalf("open fixture: %v", err)
+			}
+			defer input.Close()
+
+			log, err := Parse(input)
+			if err != nil {
+				t.Fatalf("Parse returned error: %v", err)
+			}
+
+			step := findStep(t, log.Steps(), tt.stepID)
+			if step.Name != tt.nameDetail {
+				t.Fatalf("step name = %q, want %q", step.Name, tt.nameDetail)
+			}
+			if step.Status != tt.status {
+				t.Fatalf("step status = %q, want %q", step.Status, tt.status)
+			}
+
+			statusEvent := lastStatusEvent(step.Events)
+			if statusEvent == nil {
+				t.Fatal("no status event found")
+			}
+			if statusEvent.Detail != tt.statusDetail {
+				t.Fatalf("status detail = %q, want %q", statusEvent.Detail, tt.statusDetail)
 			}
 		})
 	}

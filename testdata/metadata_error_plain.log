@@ -1,0 +1,12 @@
+#1 [internal] load build definition from Dockerfile
+#1 DONE 0.0s
+#2 [internal] load metadata for docker.io/library/missing:latest
+#2 ERROR: failed to resolve source metadata for docker.io/library/missing:latest: not found
+------
+ > [internal] load metadata for docker.io/library/missing:latest:
+------
+Dockerfile:1
+--------------------
+   1 | >>> FROM docker.io/library/missing:latest
+--------------------
+ERROR: failed to solve: docker.io/library/missing:latest: failed to resolve source metadata

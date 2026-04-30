@@ -77,7 +77,8 @@ Implemented:
 - non-streaming `--progress=plain` parsing
 - event JSON output
 - step summary JSON output
-- fixtures for success, cache, error, and interleaved BuildKit logs
+- fixtures for success, cache, error, warning, cancellation, metadata failure,
+  and interleaved BuildKit logs
 
 Not implemented yet:
 
