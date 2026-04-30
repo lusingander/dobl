@@ -55,6 +55,11 @@ steps := log.Steps()
 is intentional because BuildKit plain output is human-readable text and may
 vary across Docker versions or CI environments.
 
+The plain parser strips ANSI control sequences before classification, handles
+carriage-return progress redraws, and accepts leading ISO-8601 UTC timestamps
+commonly added by CI log collectors. `Event.Raw` still preserves the original
+input line.
+
 ## Current IR
 
 - `BuildLog.Events` preserves the original line order.

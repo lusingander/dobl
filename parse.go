@@ -114,6 +114,7 @@ type Event struct {
 
 var (
 	ansiEscapeRE   = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]`)
+	ciTimestampRE  = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\s+`)
 	stepLineRE     = regexp.MustCompile(`^#(\d+)\s*(.*)$`)
 	stepStartRE    = regexp.MustCompile(`^\[[^\]]+\]\s+.+$`)
 	stepStatusRE   = regexp.MustCompile(`^(DONE|CACHED|ERROR|CANCELED|WARNING)(?::\s*(.*)|\s+(.+))?$`)
@@ -142,7 +143,7 @@ func Parse(r io.Reader) (*BuildLog, error) {
 
 // ParseLine parses a single plain progress line.
 func ParseLine(raw string, lineNo int) Event {
-	clean := strings.TrimRight(ansiEscapeRE.ReplaceAllString(raw, ""), "\r")
+	clean := normalizeLine(raw)
 	event := Event{
 		Line: lineNo,
 		Kind: EventUnknown,
@@ -184,6 +185,14 @@ func ParseLine(raw string, lineNo int) Event {
 	}
 
 	return event
+}
+
+func normalizeLine(raw string) string {
+	clean := ansiEscapeRE.ReplaceAllString(raw, "")
+	if index := strings.LastIndex(clean, "\r"); index >= 0 {
+		clean = clean[index+1:]
+	}
+	return ciTimestampRE.ReplaceAllString(clean, "")
 }
 
 func setStatusFields(event *Event, detail string) {

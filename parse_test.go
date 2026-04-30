@@ -43,6 +43,29 @@ func TestParseLineStripsANSIBeforeParsing(t *testing.T) {
 	}
 }
 
+func TestParseLineHandlesTerminalArtifacts(t *testing.T) {
+	tests := []struct {
+		name string
+		line string
+	}{
+		{name: "carriage_return_progress_redraw", line: "#1 transferring context: 2B done\r#1 DONE 0.0s"},
+		{name: "ci_timestamp_prefix", line: "2026-04-30T12:34:56.789Z #1 DONE 0.0s"},
+		{name: "ansi_and_ci_timestamp_prefix", line: "2026-04-30T12:34:56Z \x1b[32m#1 DONE 0.0s\x1b[0m"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			event := ParseLine(tt.line, 1)
+
+			assertEvent(t, event, EventStepStatus, "#1", EventStatusDone, "", "0.0s")
+			assertDurationNanos(t, event.DurationNanos, durationNanos(0))
+			if event.Raw != tt.line {
+				t.Fatalf("raw line was not preserved: %q", event.Raw)
+			}
+		})
+	}
+}
+
 func TestParseLineErrorStatus(t *testing.T) {
 	event := ParseLine(`#4 ERROR: process "/bin/sh -c exit 1" did not complete successfully`, 1)
 
