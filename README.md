@@ -74,6 +74,8 @@ input line.
   is not already represented by status or duration. For example, it stores step
   names, progress text, error/warning messages, and command output.
 - `BuildLog.Steps()` groups events by BuildKit step id in first-seen order.
+  Each step includes output, progress, and unknown event counts, plus
+  `error_detail` for the latest error status with detail text.
 
 ## Scope
 

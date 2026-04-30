@@ -154,6 +154,7 @@ func TestBuildLogSteps(t *testing.T) {
 		t.Fatalf("first step duration = %q, want 0.0s", first.Duration)
 	}
 	assertDurationNanos(t, first.DurationNanos, durationNanos(0))
+	assertStepCounts(t, first, 0, 1, 0)
 	if first.StartLine != 1 || first.EndLine != 3 {
 		t.Fatalf("first step lines = %d-%d, want 1-3", first.StartLine, first.EndLine)
 	}
@@ -171,6 +172,7 @@ func TestBuildLogSteps(t *testing.T) {
 	if last.Status != EventStatusDone {
 		t.Fatalf("last step status = %q, want DONE", last.Status)
 	}
+	assertStepCounts(t, last, 0, 1, 0)
 	if last.StartLine != 14 || last.EndLine != 16 {
 		t.Fatalf("last step lines = %d-%d, want 14-16", last.StartLine, last.EndLine)
 	}
@@ -208,6 +210,7 @@ func TestBuildLogStepsInterleavedFixture(t *testing.T) {
 	if step3.StartLine != 5 || step3.EndLine != 13 {
 		t.Fatalf("step #3 lines = %d-%d, want 5-13", step3.StartLine, step3.EndLine)
 	}
+	assertStepCounts(t, step3, 2, 0, 0)
 	if len(step3.Events) != 4 {
 		t.Fatalf("step #3 events = %d, want 4", len(step3.Events))
 	}
@@ -423,6 +426,9 @@ func TestBuildLogStepsFailureFixtures(t *testing.T) {
 			if step.Status != tt.status {
 				t.Fatalf("step status = %q, want %q", step.Status, tt.status)
 			}
+			if tt.status == EventStatusError && step.ErrorDetail != tt.statusDetail {
+				t.Fatalf("step error detail = %q, want %q", step.ErrorDetail, tt.statusDetail)
+			}
 
 			statusEvent := lastStatusEvent(step.Events)
 			if statusEvent == nil {
@@ -458,6 +464,20 @@ func findStep(t *testing.T, steps []Step, id string) Step {
 	}
 	t.Fatalf("step %s not found", id)
 	return Step{}
+}
+
+func assertStepCounts(t *testing.T, step Step, outputs, progress, unknowns int) {
+	t.Helper()
+
+	if step.OutputCount != outputs {
+		t.Fatalf("step %s output count = %d, want %d", step.ID, step.OutputCount, outputs)
+	}
+	if step.ProgressCount != progress {
+		t.Fatalf("step %s progress count = %d, want %d", step.ID, step.ProgressCount, progress)
+	}
+	if step.UnknownCount != unknowns {
+		t.Fatalf("step %s unknown count = %d, want %d", step.ID, step.UnknownCount, unknowns)
+	}
 }
 
 func countKinds(events []Event) map[EventKind]int {

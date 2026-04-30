@@ -63,21 +63,40 @@ func (l *BuildLog) Steps() []Step {
 		step.Events = append(step.Events, event)
 		step.EndLine = event.Line
 
-		if event.Kind == EventStepStart && step.Name == "" {
-			step.Name = event.Detail
-		}
-		if event.Status != "" {
-			step.Status = event.Status
-		}
-		if event.Duration != "" {
-			step.Duration = event.Duration
-		}
-		if event.DurationNanos != nil {
-			step.DurationNanos = event.DurationNanos
-		}
+		step.applyEvent(event)
 	}
 
 	return steps
+}
+
+func (s *Step) applyEvent(event Event) {
+	switch event.Kind {
+	case EventStepStart:
+		if s.Name == "" {
+			s.Name = event.Detail
+		}
+	case EventStepStatus:
+		if event.Status == EventStatusProgress {
+			s.ProgressCount++
+		}
+	case EventStepOutput:
+		s.OutputCount++
+	case EventUnknown:
+		s.UnknownCount++
+	}
+
+	if event.Status != "" {
+		s.Status = event.Status
+	}
+	if event.Status == EventStatusError && event.Detail != "" {
+		s.ErrorDetail = event.Detail
+	}
+	if event.Duration != "" {
+		s.Duration = event.Duration
+	}
+	if event.DurationNanos != nil {
+		s.DurationNanos = event.DurationNanos
+	}
 }
 
 // Step is an aggregate view of all events with the same BuildKit step ID.
@@ -87,6 +106,10 @@ type Step struct {
 	Status        EventStatus `json:"status,omitempty"`
 	Duration      string      `json:"duration,omitempty"`
 	DurationNanos *int64      `json:"duration_nanos,omitempty"`
+	OutputCount   int         `json:"output_count"`
+	ProgressCount int         `json:"progress_count"`
+	UnknownCount  int         `json:"unknown_count"`
+	ErrorDetail   string      `json:"error_detail,omitempty"`
 	StartLine     int         `json:"start_line"`
 	EndLine       int         `json:"end_line"`
 	Events        []Event     `json:"events,omitempty"`
