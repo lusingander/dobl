@@ -66,6 +66,8 @@ Summary JSON is the stable input contract for downstream reports and
 visualizations. See [Output formats](docs/output.md) and the
 [summary JSON schema](docs/summary.schema.json) for the documented fields.
 
+A static summary viewer is available at [examples/viewer](examples/viewer).
+
 ## Documentation
 
 - [CLI reference](docs/cli.md)
@@ -82,6 +84,7 @@ Implemented:
 - step summary JSON output
 - step summary table output
 - summary filters for status, failure, stage, instruction, and step ID
+- static summary JSON viewer
 - normalization for common ANSI, carriage-return, timestamp, and CI log-prefix
   artifacts
 
@@ -89,7 +92,8 @@ Not implemented:
 
 - streaming parsing
 - `--progress=rawjson`
-- terminal or HTML visualization
+- terminal visualization
+- CLI-native HTML report output
 
 ## License
 

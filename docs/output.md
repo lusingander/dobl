@@ -144,6 +144,17 @@ Columns:
 - `PROGRESS`: progress event count.
 - `ERROR`: error detail. Long values are truncated unless `--wide` is used.
 
+## Static Viewer
+
+The static viewer in [`examples/viewer`](../examples/viewer) reads summary JSON
+from `dobl summary --format json`.
+
+```sh
+dobl summary --compact build.log > summary.json
+```
+
+Open `examples/viewer/index.html` in a browser and load `summary.json`.
+
 ## Category Rules
 
 Summary `category` values are assigned from the parsed step name:
