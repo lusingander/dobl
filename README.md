@@ -62,6 +62,10 @@ ID  STATUS  DURATION  STEP  INSTRUCTION  NAME                                   
 The default output format is JSON. Table output truncates long error details by
 default; use `--wide` to keep full error text.
 
+Summary JSON is the stable input contract for downstream reports and
+visualizations. See [Output formats](docs/output.md) and the
+[summary JSON schema](docs/summary.schema.json) for the documented fields.
+
 ## Documentation
 
 - [CLI reference](docs/cli.md)
