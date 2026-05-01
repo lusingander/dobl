@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lusingander/dobl/docs/summary.schema.json",
+  "title": "Dobl summary JSON",
+  "description": "Summary JSON emitted by `dobl summary --format json`.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": true,
+    "required": [
+      "id",
+      "order",
+      "category",
+      "output_count",
+      "progress_count",
+      "warning_count",
+      "unknown_count",
+      "start_line",
+      "end_line"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^#[0-9]+$"
+      },
+      "order": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "name": {
+        "type": "string"
+      },
+      "display_name": {
+        "type": "string"
+      },
+      "category": {
+        "type": "string",
+        "enum": [
+          "dockerfile",
+          "internal",
+          "export",
+          "cache",
+          "provenance",
+          "other"
+        ]
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "DONE",
+          "CACHED",
+          "ERROR",
+          "CANCELED",
+          "WARNING",
+          "PROGRESS"
+        ]
+      },
+      "duration": {
+        "type": "string"
+      },
+      "duration_nanos": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "stage": {
+        "type": "string"
+      },
+      "index": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "total": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "instruction": {
+        "type": "string"
+      },
+      "output_count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "output_tail": {
+        "type": "array",
+        "maxItems": 5,
+        "items": {
+          "type": "string"
+        }
+      },
+      "progress_count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "warning_count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "unknown_count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "error_detail": {
+        "type": "string"
+      },
+      "warning_detail": {
+        "type": "string"
+      },
+      "start_line": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "end_line": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "events": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

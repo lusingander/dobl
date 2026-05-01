@@ -66,7 +66,8 @@ Summary fields:
 
 Summary JSON is intended to be the stable input format for downstream reports
 and visualizations. Consumers should treat the fields documented in this
-section as the public contract.
+section as the public contract. A machine-readable schema is available at
+[`docs/summary.schema.json`](summary.schema.json).
 
 Compatibility rules:
 
