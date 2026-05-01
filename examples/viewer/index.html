@@ -761,7 +761,7 @@
         segment.className = "timeline-segment category-" + step.category;
         segment.title = step.id + " " + (step.displayName || step.name);
         segment.addEventListener("click", () => {
-          selectStep(step.id);
+          selectStep(step.id, { scrollStepIntoView: true });
         });
         timeline.append(segment);
       }
@@ -770,7 +770,10 @@
 
     function selectStep(id, options = {}) {
       state.selectedID = id;
-      renderSteps({ preserveScroll: options.preserveStepScroll === true });
+      renderSteps({
+        preserveScroll: options.preserveStepScroll === true,
+        scrollSelectedIntoView: options.scrollStepIntoView === true
+      });
       renderDetail();
     }
 
@@ -794,6 +797,7 @@
         const button = document.createElement("button");
         button.type = "button";
         button.className = "step-card";
+        button.dataset.stepId = step.id;
         button.setAttribute("aria-selected", step.id === state.selectedID ? "true" : "false");
         button.addEventListener("click", () => {
           selectStep(step.id, { preserveStepScroll: true });
@@ -824,12 +828,25 @@
         els.stepList.append(button);
       }
       restoreStepListScroll(previousScrollTop, options);
+      scrollSelectedStepIntoView(options);
     }
 
     function restoreStepListScroll(previousScrollTop, options) {
       if (!options.preserveScroll) return;
       const maxScrollTop = Math.max(0, els.stepList.scrollHeight - els.stepList.clientHeight);
       els.stepList.scrollTop = Math.min(previousScrollTop, maxScrollTop);
+    }
+
+    function scrollSelectedStepIntoView(options) {
+      if (!options.scrollSelectedIntoView) return;
+      const selected = Array.from(els.stepList.children).find((child) => {
+        return child.dataset && child.dataset.stepId === state.selectedID;
+      });
+      if (!selected) return;
+
+      const targetTop = selected.offsetTop - ((els.stepList.clientHeight - selected.offsetHeight) / 2);
+      const maxScrollTop = Math.max(0, els.stepList.scrollHeight - els.stepList.clientHeight);
+      els.stepList.scrollTop = Math.max(0, Math.min(targetTop, maxScrollTop));
     }
 
     function renderDetail() {
