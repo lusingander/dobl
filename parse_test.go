@@ -560,6 +560,14 @@ func TestBuildLogStepsFailureFixtures(t *testing.T) {
 			if tt.status == EventStatusError && step.ErrorDetail != tt.statusDetail {
 				t.Fatalf("step error detail = %q, want %q", step.ErrorDetail, tt.statusDetail)
 			}
+			if tt.status == EventStatusWarning {
+				if step.WarningCount != 1 {
+					t.Fatalf("step warning count = %d, want 1", step.WarningCount)
+				}
+				if step.WarningDetail != tt.statusDetail {
+					t.Fatalf("step warning detail = %q, want %q", step.WarningDetail, tt.statusDetail)
+				}
+			}
 
 			statusEvent := lastStatusEvent(step.Events)
 			if statusEvent == nil {

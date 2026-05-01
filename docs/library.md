@@ -64,8 +64,10 @@ Each `Step` includes:
 - `instruction`
 - `output_count`
 - `progress_count`
+- `warning_count`
 - `unknown_count`
 - `error_detail`
+- `warning_detail`
 - `start_line`
 - `end_line`
 - optional source `events`

@@ -111,6 +111,12 @@ func (s *Step) applyEvent(event Event) {
 	if event.Status == EventStatusError && event.Detail != "" {
 		s.ErrorDetail = event.Detail
 	}
+	if event.Status == EventStatusWarning {
+		s.WarningCount++
+		if event.Detail != "" {
+			s.WarningDetail = event.Detail
+		}
+	}
 	if event.Duration != "" {
 		s.Duration = event.Duration
 	}
@@ -161,8 +167,10 @@ type Step struct {
 	Instruction   string       `json:"instruction,omitempty"`
 	OutputCount   int          `json:"output_count"`
 	ProgressCount int          `json:"progress_count"`
+	WarningCount  int          `json:"warning_count"`
 	UnknownCount  int          `json:"unknown_count"`
 	ErrorDetail   string       `json:"error_detail,omitempty"`
+	WarningDetail string       `json:"warning_detail,omitempty"`
 	StartLine     int          `json:"start_line"`
 	EndLine       int          `json:"end_line"`
 	Events        []Event      `json:"events,omitempty"`
