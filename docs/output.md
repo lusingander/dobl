@@ -62,6 +62,64 @@ Summary fields:
 - `end_line`: last line for the step.
 - `events`: source events, only included with `dobl summary --events`.
 
+## Summary JSON Contract
+
+Summary JSON is intended to be the stable input format for downstream reports
+and visualizations. Consumers should treat the fields documented in this
+section as the public contract.
+
+Compatibility rules:
+
+- Existing documented fields are additive API surface and should not be renamed
+  or removed without a major compatibility decision.
+- New fields may be added in future releases.
+- Consumers should ignore unknown fields.
+- Fields tagged with `omitempty` are absent when the parser has no value for
+  them.
+- Array order is meaningful. Steps are emitted in first-seen BuildKit step ID
+  order, which is also stored in `order`.
+- `events` is intentionally omitted by default to keep summary output compact.
+  Use `dobl summary --events` when event-level replay or debugging is needed.
+
+Field semantics for visualization:
+
+- Use `id` as the stable BuildKit step identifier within one parsed log.
+- Use `order` for timeline ordering.
+- Use `name` when the full parsed BuildKit label is needed.
+- Use `display_name` as the preferred compact UI label.
+- Use `category` for grouping and coloring.
+- Use `status` as the latest parsed status for the step.
+- Use `error_detail` and `warning_detail` for highlighted diagnostics.
+- Use `output_tail` for lightweight command output context. It contains at
+  most the latest 5 output lines for the step.
+- Use `start_line` and `end_line` to link a summary item back to the source
+  log.
+
+Status values:
+
+- `DONE`
+- `CACHED`
+- `ERROR`
+- `CANCELED`
+- `WARNING`
+- `PROGRESS`
+
+Category values:
+
+- `dockerfile`
+- `internal`
+- `export`
+- `cache`
+- `provenance`
+- `other`
+
+Duration values:
+
+- `duration` preserves the original BuildKit duration text.
+- `duration_nanos` is present only when the duration can be parsed by Go's
+  `time.ParseDuration`.
+- A parsed zero duration is emitted as `"duration_nanos": 0`.
+
 ## Summary Table
 
 `dobl summary --format table testdata/error_plain.log` emits:

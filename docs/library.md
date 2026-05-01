@@ -47,6 +47,11 @@ Duration handling:
 ## Step Summary IR
 
 `BuildLog.Steps()` groups events by BuildKit step ID in first-seen order.
+The returned slice is the library form of the `dobl summary --format json`
+contract. Existing documented fields are intended to be additive API surface
+for reports and visualizations: consumers should ignore unknown fields, and
+callers should expect optional fields to be absent from JSON when their zero
+value carries no parser information.
 
 Each `Step` includes:
 
@@ -104,6 +109,9 @@ label is needed.
 `output_tail` keeps only the latest output event details for each step. It is
 intended to provide lightweight failure context without embedding every output
 line in summary JSON.
+
+Use `Events` when exact event replay is required. CLI summary JSON omits this
+field by default and includes it only with `dobl summary --events`.
 
 Category assignment is intentionally simple and based on the parsed step name:
 
