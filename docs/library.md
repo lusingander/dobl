@@ -104,3 +104,14 @@ label is needed.
 `output_tail` keeps only the latest output event details for each step. It is
 intended to provide lightweight failure context without embedding every output
 line in summary JSON.
+
+Category assignment is intentionally simple and based on the parsed step name:
+
+- `dockerfile`: names with Dockerfile step metadata, such as
+  `[build 1/3] RUN ...`.
+- `internal`: names beginning with `[internal] `.
+- `export`: names beginning with `exporting to `.
+- `cache`: names beginning with `exporting cache to ` or
+  `importing cache manifest from `.
+- `provenance`: names beginning with `resolving provenance for `.
+- `other`: any step that does not match the rules above.

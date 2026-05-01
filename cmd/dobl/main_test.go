@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 )
@@ -167,6 +168,43 @@ func TestRunSummaryExplicitJSONFormat(t *testing.T) {
 	}
 	if len(decoded) != 1 || decoded[0].Status != "DONE" {
 		t.Fatalf("unexpected output: %+v", decoded)
+	}
+}
+
+func TestRunSummaryCompactGolden(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		golden string
+	}{
+		{name: "error", input: "../../testdata/error_plain.log", golden: "testdata/summary_error.golden.json"},
+		{name: "warning", input: "../../testdata/warning_plain.log", golden: "testdata/summary_warning.golden.json"},
+		{name: "parallel", input: "../../testdata/parallel_plain.log", golden: "testdata/summary_parallel.golden.json"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input, err := os.ReadFile(tt.input)
+			if err != nil {
+				t.Fatalf("read input fixture: %v", err)
+			}
+			expected, err := os.ReadFile(tt.golden)
+			if err != nil {
+				t.Fatalf("read golden fixture: %v", err)
+			}
+
+			var out bytes.Buffer
+			err = run([]string{"dobl", "summary", "--compact"}, bytes.NewReader(input), &out)
+			if err != nil {
+				t.Fatalf("run returned error: %v", err)
+			}
+
+			got := strings.TrimSpace(out.String())
+			want := strings.TrimSpace(string(expected))
+			if got != want {
+				t.Fatalf("summary output mismatch\n got: %s\nwant: %s", got, want)
+			}
+		})
 	}
 }
 

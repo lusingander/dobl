@@ -50,8 +50,9 @@ Summary fields:
 - `total`: Dockerfile step total when parsed.
 - `instruction`: Dockerfile instruction when parsed.
 - `output_count`: number of `step_output` events for the step.
-- `output_tail`: latest output event details for the step, capped to the last
-  5 lines.
+- `output_tail`: latest `step_output.detail` values for the step, capped to
+  the last 5 lines. It is omitted when the step has no output events. Use
+  `summary --events` when every source event is needed.
 - `progress_count`: number of parser-created `PROGRESS` status events.
 - `warning_count`: number of `WARNING` status events for the step.
 - `unknown_count`: number of unknown events assigned to the step.
@@ -83,3 +84,15 @@ Columns:
 - `OUTPUTS`: output event count.
 - `PROGRESS`: progress event count.
 - `ERROR`: error detail. Long values are truncated unless `--wide` is used.
+
+## Category Rules
+
+Summary `category` values are assigned from the parsed step name:
+
+- `dockerfile`: Dockerfile step metadata such as `[build 1/3] RUN ...`.
+- `internal`: names beginning with `[internal] `.
+- `export`: names beginning with `exporting to `.
+- `cache`: names beginning with `exporting cache to ` or
+  `importing cache manifest from `.
+- `provenance`: names beginning with `resolving provenance for `.
+- `other`: anything else.
