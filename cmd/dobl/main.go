@@ -64,7 +64,7 @@ func (c *summaryCmd) Help() string {
   dobl summary --failed --format table build.log
   dobl summary --status ERROR build.log
   dobl summary --stage build --instruction RUN build.log
-  dobl summary --step #3 build.log`
+  dobl summary --step '#3' build.log`
 }
 
 type runContext struct {

@@ -1,165 +1,88 @@
 # Dobl
 
-Dobl parses plain Docker BuildKit build logs into JSON that can be inspected,
-summarized, and eventually visualized.
+Dobl parses Docker BuildKit `--progress=plain` build logs into structured JSON
+and step summaries.
 
-The current target is `docker build` / `docker buildx build` output produced
-with `--progress=plain`.
+It is useful when CI logs need to be searched, filtered, summarized, or passed
+to later reporting tools.
 
-## Usage
+## Install
 
-Parse a build log into line-oriented events:
+```sh
+go install github.com/lusingander/dobl/cmd/dobl@latest
+```
+
+## Quick Start
+
+Parse a plain BuildKit log into line-oriented event JSON:
 
 ```sh
 docker buildx build --progress=plain . 2>&1 | dobl parse
 ```
 
-Read from a file:
-
-```sh
-dobl parse build.log
-```
-
-Summarize events by BuildKit step:
+Summarize a saved log by BuildKit step:
 
 ```sh
 dobl summary build.log
 ```
 
-Emit a human-readable summary table:
+Show a human-readable table:
 
 ```sh
 dobl summary --format table build.log
-dobl summary --format table --wide build.log
 ```
 
 Show only failed steps:
 
 ```sh
-dobl summary --failed build.log
 dobl summary --failed --format table build.log
 ```
 
-Filter steps by status:
+Filter by Dockerfile metadata or step ID:
 
 ```sh
-dobl summary --status ERROR build.log
-dobl summary --status WARNING --format table build.log
-```
-
-Filter steps by Dockerfile metadata or BuildKit step ID:
-
-```sh
-dobl summary --stage build build.log
-dobl summary --instruction RUN build.log
+dobl summary --stage build --instruction RUN build.log
 dobl summary --step '#3' --format table build.log
 ```
 
-Include each step's source events in the summary:
+## Examples
 
-```sh
-dobl summary --events build.log
-```
-
-Emit compact JSON:
-
-```sh
-dobl parse --compact build.log
-dobl summary --compact build.log
-```
-
-The default format is `json`. `dobl parse` currently supports `--format json`;
-`dobl summary` supports `--format json` and `--format table`.
-
-## Output Examples
-
-`dobl parse --compact build.log` emits line-oriented events:
-
-```json
-{"events":[{"line":1,"kind":"step_start","raw":"#1 [internal] load build definition from Dockerfile","step_id":"#1","detail":"[internal] load build definition from Dockerfile"},{"line":3,"kind":"step_status","raw":"#1 DONE 0.0s","step_id":"#1","status":"DONE","duration":"0.0s","duration_nanos":0},{"line":7,"kind":"step_output","raw":"#3 0.102 before","step_id":"#3","detail":"0.102 before"},{"line":9,"kind":"step_status","raw":"#3 ERROR: process \"...\" did not complete successfully: exit code: 2","step_id":"#3","detail":"process \"...\" did not complete successfully: exit code: 2","status":"ERROR"}]}
-```
-
-`dobl summary --compact build.log` emits derived step summaries:
-
-```json
-[{"id":"#3","name":"[1/1] RUN echo before && exit 1","status":"ERROR","index":1,"total":1,"instruction":"RUN","output_count":2,"progress_count":0,"unknown_count":0,"error_detail":"process \"...\" did not complete successfully: exit code: 2","start_line":6,"end_line":9}]
-```
-
-`dobl summary --format table build.log` emits a readable table:
+`dobl summary --format table testdata/error_plain.log`:
 
 ```text
-ID  STATUS  DURATION  STEP  INSTRUCTION  NAME                                              OUTPUTS  PROGRESS  ERROR
-#1  DONE    0.0s                         [internal] load build definition from Dockerfile  0        1
-#2  DONE    0.4s                         [internal] load metadata for ...                 0        0
-#3  ERROR             1/1   RUN          [1/1] RUN echo before && exit 1                  2        0         process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
+ID  STATUS  DURATION  STEP  INSTRUCTION  NAME                                                        OUTPUTS  PROGRESS  ERROR
+#1  DONE    0.0s                         [internal] load build definition from Dockerfile            0        1
+#2  DONE    0.4s                         [internal] load metadata for docker.io/library/alpine:3.20  0        0
+#3  ERROR             1/1   RUN          [1/1] RUN echo before && exit 1                             2        0         process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
 ```
 
-Table output truncates long error details by default. Use `--wide` to keep full
-error text.
+The default output format is JSON. Table output truncates long error details by
+default; use `--wide` to keep full error text.
 
-## Library
+## Documentation
 
-```go
-log, err := dobl.Parse(r)
-if err != nil {
-    // handle error
-}
-
-events := log.Events
-steps := log.Steps()
-```
-
-`Parse` keeps unknown lines as `unknown` events instead of dropping them. This
-is intentional because BuildKit plain output is human-readable text and may
-vary across Docker versions or CI environments.
-
-The plain parser strips ANSI control sequences before classification, handles
-carriage-return progress redraws, accepts leading RFC3339 timestamps, and
-accepts Kubernetes/CRI-style stream prefixes commonly added by CI log
-collectors. `Event.Raw` still preserves the original input line.
-
-## Current IR
-
-- `BuildLog.Events` preserves the original line order.
-- `Event.Raw` keeps the original line.
-- `Event.Kind` is one of `step_start`, `step_status`, `step_output`, or
-  `unknown`.
-- `Event.Status` uses typed constants for `DONE`, `CACHED`, `ERROR`,
-  `CANCELED`, `WARNING`, and parser-generated `PROGRESS`.
-- `Event.Duration` preserves the original duration text; `Event.DurationNanos`
-  contains the parsed duration in nanoseconds when parsing succeeds.
-- `Event.Detail` keeps the meaningful text after the BuildKit step ID when it
-  is not already represented by status or duration. For example, it stores step
-  names, progress text, error/warning messages, and command output.
-- `BuildLog.Steps()` groups events by BuildKit step id in first-seen order.
-  Each step includes output, progress, and unknown event counts, plus
-  `error_detail` for the latest error status with detail text.
-- Dockerfile step names such as `[build 1/3] RUN ...` are summarized into
-  `stage`, `index`, `total`, and `instruction` fields when present.
+- [CLI reference](docs/cli.md)
+- [Output formats](docs/output.md)
+- [Library API and IR](docs/library.md)
+- [Scope and parser behavior](docs/scope.md)
 
 ## Scope
 
 Implemented:
 
-- non-streaming `--progress=plain` parsing
+- non-streaming `docker build` / `docker buildx build` plain progress logs
 - event JSON output
 - step summary JSON output
 - step summary table output
 - summary filters for status, failure, stage, instruction, and step ID
-- fixtures for success, cache, error, warning, cancellation, metadata failure,
-  interleaved BuildKit logs, and CI/log-collector prefixes
+- normalization for common ANSI, carriage-return, timestamp, and CI log-prefix
+  artifacts
 
-Not implemented yet:
+Not implemented:
 
 - streaming parsing
 - `--progress=rawjson`
 - terminal or HTML visualization
-
-## Development
-
-This project is primarily developed with OpenAI Codex. Most implementation,
-testing, and documentation work is delegated to Codex, with human review and
-direction.
 
 ## License
 
