@@ -265,6 +265,20 @@ func TestRunSummaryVisualizationContractFields(t *testing.T) {
 	assertRawJSON(t, decoded[7], "category", `"export"`)
 }
 
+func TestViewerSampleMatchesVisualizationContractGolden(t *testing.T) {
+	sample, err := os.ReadFile("../../examples/viewer/sample-summary.json")
+	if err != nil {
+		t.Fatalf("read viewer sample: %v", err)
+	}
+	golden, err := os.ReadFile("testdata/summary_visualization_contract.golden.json")
+	if err != nil {
+		t.Fatalf("read visualization golden: %v", err)
+	}
+	if strings.TrimSpace(string(sample)) != strings.TrimSpace(string(golden)) {
+		t.Fatal("viewer sample does not match visualization contract golden")
+	}
+}
+
 func TestRunSummaryTableFormat(t *testing.T) {
 	var out bytes.Buffer
 	err := run([]string{"dobl", "summary", "--format", "table"}, strings.NewReader("#1 [build 1/2] RUN echo hi\n#1 0.100 hi\n#1 ERROR: failed\n"), &out)
