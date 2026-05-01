@@ -180,6 +180,7 @@ func TestRunSummaryCompactGolden(t *testing.T) {
 		{name: "error", input: "../../testdata/error_plain.log", golden: "testdata/summary_error.golden.json"},
 		{name: "warning", input: "../../testdata/warning_plain.log", golden: "testdata/summary_warning.golden.json"},
 		{name: "parallel", input: "../../testdata/parallel_plain.log", golden: "testdata/summary_parallel.golden.json"},
+		{name: "visualization_contract", input: "../../testdata/visualization_contract_plain.log", golden: "testdata/summary_visualization_contract.golden.json"},
 	}
 
 	for _, tt := range tests {
