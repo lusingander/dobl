@@ -6,6 +6,9 @@ and step summaries.
 It is useful when CI logs need to be searched, filtered, summarized, or passed
 to later reporting tools.
 
+> [!NOTE]
+> This project is primarily developed with OpenAI Codex. Most implementation, testing, and documentation work is delegated to Codex, with human review and direction.
+
 ## Install
 
 ```sh
