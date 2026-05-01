@@ -10,7 +10,10 @@ import (
 	"time"
 )
 
-const scannerMaxLineBytes = 1024 * 1024
+const (
+	scannerMaxLineBytes = 1024 * 1024
+	stepOutputTailLimit = 5
+)
 
 // EventKind identifies the parsed role of a plain BuildKit progress line.
 type EventKind string
@@ -101,6 +104,7 @@ func (s *Step) applyEvent(event Event) {
 		}
 	case EventStepOutput:
 		s.OutputCount++
+		s.OutputTail = appendOutputTail(s.OutputTail, event.Detail)
 	case EventUnknown:
 		s.UnknownCount++
 	}
@@ -166,6 +170,7 @@ type Step struct {
 	Total         int          `json:"total,omitempty"`
 	Instruction   string       `json:"instruction,omitempty"`
 	OutputCount   int          `json:"output_count"`
+	OutputTail    []string     `json:"output_tail,omitempty"`
 	ProgressCount int          `json:"progress_count"`
 	WarningCount  int          `json:"warning_count"`
 	UnknownCount  int          `json:"unknown_count"`
@@ -349,6 +354,17 @@ func displayStepName(name string) string {
 		return name
 	}
 	return match[1]
+}
+
+func appendOutputTail(tail []string, output string) []string {
+	if output == "" {
+		return tail
+	}
+	tail = append(tail, output)
+	if len(tail) <= stepOutputTailLimit {
+		return tail
+	}
+	return tail[len(tail)-stepOutputTailLimit:]
 }
 
 func extractDuration(detail string) string {

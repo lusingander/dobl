@@ -30,7 +30,7 @@ Event fields:
 `dobl summary --compact testdata/error_plain.log` emits derived step summaries:
 
 ```json
-[{"id":"#1","order":1,"name":"[internal] load build definition from Dockerfile","display_name":"[internal] load build definition from Dockerfile","category":"internal","status":"DONE","duration":"0.0s","duration_nanos":0,"output_count":0,"progress_count":1,"warning_count":0,"unknown_count":0,"start_line":1,"end_line":3},{"id":"#2","order":2,"name":"[internal] load metadata for docker.io/library/alpine:3.20","display_name":"[internal] load metadata for docker.io/library/alpine:3.20","category":"internal","status":"DONE","duration":"0.4s","duration_nanos":400000000,"output_count":0,"progress_count":0,"warning_count":0,"unknown_count":0,"start_line":4,"end_line":5},{"id":"#3","order":3,"name":"[1/1] RUN echo before && exit 1","display_name":"RUN echo before && exit 1","category":"dockerfile","status":"ERROR","index":1,"total":1,"instruction":"RUN","output_count":2,"progress_count":0,"warning_count":0,"unknown_count":0,"error_detail":"process \"/bin/sh -c echo before && exit 1\" did not complete successfully: exit code: 2","start_line":6,"end_line":9}]
+[{"id":"#1","order":1,"name":"[internal] load build definition from Dockerfile","display_name":"[internal] load build definition from Dockerfile","category":"internal","status":"DONE","duration":"0.0s","duration_nanos":0,"output_count":0,"progress_count":1,"warning_count":0,"unknown_count":0,"start_line":1,"end_line":3},{"id":"#2","order":2,"name":"[internal] load metadata for docker.io/library/alpine:3.20","display_name":"[internal] load metadata for docker.io/library/alpine:3.20","category":"internal","status":"DONE","duration":"0.4s","duration_nanos":400000000,"output_count":0,"progress_count":0,"warning_count":0,"unknown_count":0,"start_line":4,"end_line":5},{"id":"#3","order":3,"name":"[1/1] RUN echo before && exit 1","display_name":"RUN echo before && exit 1","category":"dockerfile","status":"ERROR","index":1,"total":1,"instruction":"RUN","output_count":2,"output_tail":["0.102 before","0.103 /bin/sh: exit: line 1: illegal number: 1"],"progress_count":0,"warning_count":0,"unknown_count":0,"error_detail":"process \"/bin/sh -c echo before && exit 1\" did not complete successfully: exit code: 2","start_line":6,"end_line":9}]
 ```
 
 Summary fields:
@@ -50,6 +50,8 @@ Summary fields:
 - `total`: Dockerfile step total when parsed.
 - `instruction`: Dockerfile instruction when parsed.
 - `output_count`: number of `step_output` events for the step.
+- `output_tail`: latest output event details for the step, capped to the last
+  5 lines.
 - `progress_count`: number of parser-created `PROGRESS` status events.
 - `warning_count`: number of `WARNING` status events for the step.
 - `unknown_count`: number of unknown events assigned to the step.

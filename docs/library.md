@@ -63,6 +63,7 @@ Each `Step` includes:
 - `total`
 - `instruction`
 - `output_count`
+- `output_tail`
 - `progress_count`
 - `warning_count`
 - `unknown_count`
@@ -99,3 +100,7 @@ visualizations:
 
 `name` remains the parsed BuildKit step name and should be used when a rawer
 label is needed.
+
+`output_tail` keeps only the latest output event details for each step. It is
+intended to provide lightweight failure context without embedding every output
+line in summary JSON.

@@ -1,6 +1,7 @@
 package dobl
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -253,6 +254,10 @@ func TestBuildLogStepsInterleavedFixture(t *testing.T) {
 		t.Fatalf("step #3 lines = %d-%d, want 5-13", step3.StartLine, step3.EndLine)
 	}
 	assertStepCounts(t, step3, 2, 0, 0)
+	assertStepOutputTail(t, step3, []string{
+		"0.214 downloading github.com/example/module v1.2.3",
+		"1.041 downloaded github.com/example/module v1.2.3",
+	})
 	if len(step3.Events) != 4 {
 		t.Fatalf("step #3 events = %d, want 4", len(step3.Events))
 	}
@@ -335,6 +340,31 @@ func TestBuildLogStepsDisplayMetadata(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBuildLogStepsOutputTail(t *testing.T) {
+	lines := []string{"#1 [1/1] RUN seq 1 7"}
+	for i := 1; i <= 7; i++ {
+		lines = append(lines, fmt.Sprintf("#1 0.%03d line %d", i, i))
+	}
+	lines = append(lines, "#1 DONE 0.1s")
+
+	log, err := Parse(strings.NewReader(strings.Join(lines, "\n")))
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	step := findStep(t, log.Steps(), "#1")
+	if step.OutputCount != 7 {
+		t.Fatalf("output count = %d, want 7", step.OutputCount)
+	}
+	assertStepOutputTail(t, step, []string{
+		"0.003 line 3",
+		"0.004 line 4",
+		"0.005 line 5",
+		"0.006 line 6",
+		"0.007 line 7",
+	})
 }
 
 func TestBuildLogStepsDockerfileStepMetadata(t *testing.T) {
@@ -616,6 +646,19 @@ func assertStepCounts(t *testing.T, step Step, outputs, progress, unknowns int) 
 	}
 	if step.UnknownCount != unknowns {
 		t.Fatalf("step %s unknown count = %d, want %d", step.ID, step.UnknownCount, unknowns)
+	}
+}
+
+func assertStepOutputTail(t *testing.T, step Step, tail []string) {
+	t.Helper()
+
+	if len(step.OutputTail) != len(tail) {
+		t.Fatalf("step %s output tail = %#v, want %#v", step.ID, step.OutputTail, tail)
+	}
+	for i := range tail {
+		if step.OutputTail[i] != tail[i] {
+			t.Fatalf("step %s output tail = %#v, want %#v", step.ID, step.OutputTail, tail)
+		}
 	}
 }
 
