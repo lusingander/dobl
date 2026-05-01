@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dobl Summary Viewer</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-muted: #eef1f5;
+      --text: #18202b;
+      --muted: #687385;
+      --line: #d9dee7;
+      --line-strong: #b9c2d0;
+      --focus: #1769aa;
+      --done: #1f7a4d;
+      --cached: #6f5db7;
+      --error: #b3261e;
+      --canceled: #6f3b16;
+      --warning: #b26b00;
+      --progress: #1f6f8b;
+      --dockerfile: #1769aa;
+      --internal: #4d6278;
+      --export: #1f7a4d;
+      --cache: #6f5db7;
+      --provenance: #8a5a16;
+      --other: #687385;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button,
+    .file-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--text);
+      cursor: pointer;
+      padding: 0 12px;
+      white-space: nowrap;
+    }
+
+    button:hover,
+    .file-button:hover {
+      border-color: var(--focus);
+    }
+
+    button:focus-visible,
+    .file-button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    button:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--line);
+      background: rgba(246, 247, 249, 0.96);
+      backdrop-filter: blur(10px);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 14px 20px;
+    }
+
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--focus);
+      font-family: var(--mono);
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .source-name {
+      margin-top: 3px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 60vw;
+      font-size: 12px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    #file-input {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      clip-path: inset(50%);
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    main {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 18px 20px 24px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      min-height: 74px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 12px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metric-value {
+      margin-top: 6px;
+      font-size: 24px;
+      line-height: 1;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1.55fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .panel-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 54px;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+    }
+
+    .panel-title {
+      font-weight: 700;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 132px 132px;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .filters input,
+    .filters select {
+      width: 100%;
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 0 10px;
+    }
+
+    .step-list {
+      max-height: calc(100vh - 220px);
+      min-height: 420px;
+      overflow: auto;
+      padding: 8px;
+    }
+
+    .step-card {
+      display: grid;
+      grid-template-columns: 8px minmax(0, 1fr);
+      gap: 10px;
+      width: 100%;
+      min-height: 78px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      margin: 0 0 8px;
+      padding: 0;
+      text-align: left;
+    }
+
+    .step-card[aria-selected="true"] {
+      border-color: var(--focus);
+      box-shadow: 0 0 0 1px var(--focus);
+    }
+
+    .step-stripe {
+      border-radius: 7px 0 0 7px;
+      background: var(--other);
+    }
+
+    .step-card-body {
+      min-width: 0;
+      padding: 10px 10px 10px 0;
+    }
+
+    .step-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .step-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .step-meta {
+      margin-top: 7px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      padding: 0 8px;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .pill-muted {
+      color: var(--muted);
+    }
+
+    .status-DONE { color: var(--done); }
+    .status-CACHED { color: var(--cached); }
+    .status-ERROR { color: var(--error); }
+    .status-CANCELED { color: var(--canceled); }
+    .status-WARNING { color: var(--warning); }
+    .status-PROGRESS { color: var(--progress); }
+
+    .category-dockerfile { background: var(--dockerfile); }
+    .category-internal { background: var(--internal); }
+    .category-export { background: var(--export); }
+    .category-cache { background: var(--cache); }
+    .category-provenance { background: var(--provenance); }
+    .category-other { background: var(--other); }
+
+    .detail {
+      min-height: 536px;
+      padding: 16px;
+    }
+
+    .detail-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: start;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 14px;
+    }
+
+    .detail-title {
+      margin: 0;
+      overflow-wrap: anywhere;
+      font-size: 20px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .detail-subtitle {
+      margin-top: 7px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .field {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-muted);
+      padding: 10px;
+      min-height: 64px;
+    }
+
+    .field-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .field-value {
+      margin-top: 5px;
+      overflow-wrap: anywhere;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
+      gap: 3px;
+      min-height: 22px;
+      margin-bottom: 14px;
+    }
+
+    .timeline-segment {
+      min-height: 22px;
+      border-radius: 3px;
+      background: var(--other);
+    }
+
+    .section {
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+      margin-top: 14px;
+    }
+
+    .section h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    .diagnostic {
+      border-left: 4px solid var(--line-strong);
+      background: var(--panel-muted);
+      border-radius: 6px;
+      padding: 10px 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .diagnostic.error {
+      border-left-color: var(--error);
+    }
+
+    .diagnostic.warning {
+      border-left-color: var(--warning);
+    }
+
+    pre {
+      margin: 0;
+      max-height: 240px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #111827;
+      color: #f4f7fb;
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .empty {
+      display: grid;
+      min-height: 320px;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 980px) {
+      .topbar,
+      .workspace,
+      .detail-header {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        justify-content: flex-start;
+      }
+
+      .stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .step-list {
+        max-height: none;
+        min-height: 260px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .topbar,
+      main {
+        padding-inline: 12px;
+      }
+
+      .stats,
+      .detail-grid,
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .metric {
+        min-height: 62px;
+      }
+
+      .source-name {
+        max-width: 86vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <div class="mark">D</div>
+        <div>
+          <h1>Dobl Summary Viewer</h1>
+          <div class="source-name" id="source-name">No summary loaded</div>
+        </div>
+      </div>
+      <div class="actions">
+        <label class="file-button" for="file-input">Open JSON</label>
+        <input id="file-input" type="file" accept="application/json,.json">
+        <button id="clear-button" type="button" disabled>Clear</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="stats" aria-label="Summary metrics">
+      <div class="metric">
+        <div class="metric-label">Steps</div>
+        <div class="metric-value" id="metric-steps">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Done</div>
+        <div class="metric-value" id="metric-done">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Cached</div>
+        <div class="metric-value" id="metric-cached">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Warnings</div>
+        <div class="metric-value" id="metric-warnings">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Errors</div>
+        <div class="metric-value" id="metric-errors">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Outputs</div>
+        <div class="metric-value" id="metric-outputs">0</div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Steps</div>
+          <div class="pill pill-muted" id="visible-count">0 shown</div>
+        </div>
+        <div class="filters">
+          <input id="search-input" type="search" placeholder="Search" autocomplete="off">
+          <select id="status-filter" aria-label="Status">
+            <option value="">Status</option>
+            <option value="DONE">DONE</option>
+            <option value="CACHED">CACHED</option>
+            <option value="ERROR">ERROR</option>
+            <option value="CANCELED">CANCELED</option>
+            <option value="WARNING">WARNING</option>
+            <option value="PROGRESS">PROGRESS</option>
+          </select>
+          <select id="category-filter" aria-label="Category">
+            <option value="">Category</option>
+            <option value="dockerfile">dockerfile</option>
+            <option value="internal">internal</option>
+            <option value="export">export</option>
+            <option value="cache">cache</option>
+            <option value="provenance">provenance</option>
+            <option value="other">other</option>
+          </select>
+        </div>
+        <div class="step-list" id="step-list"></div>
+      </div>
+
+      <div class="panel detail" id="detail-panel"></div>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      steps: [],
+      filtered: [],
+      selectedID: "",
+      sourceName: ""
+    };
+
+    const els = {
+      fileInput: document.querySelector("#file-input"),
+      clearButton: document.querySelector("#clear-button"),
+      sourceName: document.querySelector("#source-name"),
+      searchInput: document.querySelector("#search-input"),
+      statusFilter: document.querySelector("#status-filter"),
+      categoryFilter: document.querySelector("#category-filter"),
+      visibleCount: document.querySelector("#visible-count"),
+      stepList: document.querySelector("#step-list"),
+      detailPanel: document.querySelector("#detail-panel"),
+      metrics: {
+        steps: document.querySelector("#metric-steps"),
+        done: document.querySelector("#metric-done"),
+        cached: document.querySelector("#metric-cached"),
+        warnings: document.querySelector("#metric-warnings"),
+        errors: document.querySelector("#metric-errors"),
+        outputs: document.querySelector("#metric-outputs")
+      }
+    };
+
+    const statusValues = ["DONE", "CACHED", "ERROR", "CANCELED", "WARNING", "PROGRESS"];
+    const categoryValues = ["dockerfile", "internal", "export", "cache", "provenance", "other"];
+
+    els.fileInput.addEventListener("change", async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        loadSummary(JSON.parse(text), file.name);
+      } catch (error) {
+        showError(error);
+      } finally {
+        els.fileInput.value = "";
+      }
+    });
+
+    els.clearButton.addEventListener("click", () => {
+      loadSummary([], "");
+    });
+
+    els.searchInput.addEventListener("input", applyFilters);
+    els.statusFilter.addEventListener("change", applyFilters);
+    els.categoryFilter.addEventListener("change", applyFilters);
+
+    window.addEventListener("dragover", (event) => {
+      event.preventDefault();
+    });
+
+    window.addEventListener("drop", async (event) => {
+      event.preventDefault();
+      const file = event.dataTransfer.files && event.dataTransfer.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        loadSummary(JSON.parse(text), file.name);
+      } catch (error) {
+        showError(error);
+      }
+    });
+
+    function loadSummary(value, sourceName) {
+      if (!Array.isArray(value)) {
+        throw new Error("Expected a summary JSON array.");
+      }
+
+      state.steps = value.map(normalizeStep).sort((a, b) => a.order - b.order);
+      state.selectedID = state.steps[0] ? state.steps[0].id : "";
+      state.sourceName = sourceName || "";
+      els.sourceName.textContent = state.sourceName || "No summary loaded";
+      els.clearButton.disabled = state.steps.length === 0;
+      renderMetrics();
+      renderTimeline();
+      applyFilters();
+    }
+
+    function normalizeStep(step, index) {
+      return {
+        id: stringValue(step.id, "#" + (index + 1)),
+        order: numberValue(step.order, index + 1),
+        name: stringValue(step.name, ""),
+        displayName: stringValue(step.display_name, step.name || ""),
+        category: categoryValues.includes(step.category) ? step.category : "other",
+        status: statusValues.includes(step.status) ? step.status : "",
+        duration: stringValue(step.duration, ""),
+        durationNanos: typeof step.duration_nanos === "number" ? step.duration_nanos : null,
+        stage: stringValue(step.stage, ""),
+        index: numberValue(step.index, 0),
+        total: numberValue(step.total, 0),
+        instruction: stringValue(step.instruction, ""),
+        outputCount: numberValue(step.output_count, 0),
+        outputTail: Array.isArray(step.output_tail) ? step.output_tail.map(String) : [],
+        progressCount: numberValue(step.progress_count, 0),
+        warningCount: numberValue(step.warning_count, 0),
+        unknownCount: numberValue(step.unknown_count, 0),
+        errorDetail: stringValue(step.error_detail, ""),
+        warningDetail: stringValue(step.warning_detail, ""),
+        startLine: numberValue(step.start_line, 0),
+        endLine: numberValue(step.end_line, 0)
+      };
+    }
+
+    function stringValue(value, fallback) {
+      return typeof value === "string" ? value : fallback;
+    }
+
+    function numberValue(value, fallback) {
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    function applyFilters() {
+      const query = els.searchInput.value.trim().toLowerCase();
+      const status = els.statusFilter.value;
+      const category = els.categoryFilter.value;
+
+      state.filtered = state.steps.filter((step) => {
+        if (status && step.status !== status) return false;
+        if (category && step.category !== category) return false;
+        if (!query) return true;
+        return [
+          step.id,
+          step.name,
+          step.displayName,
+          step.status,
+          step.category,
+          step.stage,
+          step.instruction,
+          step.errorDetail,
+          step.warningDetail,
+          step.outputTail.join("\n")
+        ].join("\n").toLowerCase().includes(query);
+      });
+
+      if (!state.filtered.some((step) => step.id === state.selectedID)) {
+        state.selectedID = state.filtered[0] ? state.filtered[0].id : "";
+      }
+
+      renderSteps();
+      renderDetail();
+    }
+
+    function renderMetrics() {
+      const totals = state.steps.reduce((acc, step) => {
+        acc.steps += 1;
+        acc.done += step.status === "DONE" ? 1 : 0;
+        acc.cached += step.status === "CACHED" ? 1 : 0;
+        acc.warnings += step.warningCount;
+        acc.errors += step.status === "ERROR" ? 1 : 0;
+        acc.outputs += step.outputCount;
+        return acc;
+      }, { steps: 0, done: 0, cached: 0, warnings: 0, errors: 0, outputs: 0 });
+
+      els.metrics.steps.textContent = totals.steps;
+      els.metrics.done.textContent = totals.done;
+      els.metrics.cached.textContent = totals.cached;
+      els.metrics.warnings.textContent = totals.warnings;
+      els.metrics.errors.textContent = totals.errors;
+      els.metrics.outputs.textContent = totals.outputs;
+    }
+
+    function renderTimeline() {
+      const existing = document.querySelector(".timeline");
+      if (existing) existing.remove();
+      if (!state.steps.length) return;
+
+      const timeline = document.createElement("div");
+      timeline.className = "timeline";
+      timeline.setAttribute("aria-label", "Step timeline");
+      for (const step of state.steps) {
+        const segment = document.createElement("button");
+        segment.type = "button";
+        segment.className = "timeline-segment category-" + step.category;
+        segment.title = step.id + " " + (step.displayName || step.name);
+        segment.addEventListener("click", () => {
+          state.selectedID = step.id;
+          renderSteps();
+          renderDetail();
+        });
+        timeline.append(segment);
+      }
+      document.querySelector("main").insertBefore(timeline, document.querySelector(".workspace"));
+    }
+
+    function renderSteps() {
+      els.visibleCount.textContent = state.filtered.length + " shown";
+      els.stepList.replaceChildren();
+
+      if (!state.steps.length) {
+        els.stepList.append(emptyNode("No summary loaded"));
+        return;
+      }
+      if (!state.filtered.length) {
+        els.stepList.append(emptyNode("No matching steps"));
+        return;
+      }
+
+      for (const step of state.filtered) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "step-card";
+        button.setAttribute("aria-selected", step.id === state.selectedID ? "true" : "false");
+        button.addEventListener("click", () => {
+          state.selectedID = step.id;
+          renderSteps();
+          renderDetail();
+        });
+
+        const stripe = document.createElement("span");
+        stripe.className = "step-stripe category-" + step.category;
+        button.append(stripe);
+
+        const body = document.createElement("span");
+        body.className = "step-card-body";
+
+        const top = document.createElement("span");
+        top.className = "step-row";
+        top.append(pill(step.status || "UNKNOWN", "status-" + step.status));
+        top.append(pill(step.category, "pill-muted"));
+        const title = document.createElement("span");
+        title.className = "step-title";
+        title.textContent = step.displayName || step.name || step.id;
+        top.append(title);
+
+        const meta = document.createElement("span");
+        meta.className = "step-meta";
+        meta.textContent = compactMeta(step);
+
+        body.append(top, meta);
+        button.append(body);
+        els.stepList.append(button);
+      }
+    }
+
+    function renderDetail() {
+      els.detailPanel.replaceChildren();
+      const step = state.steps.find((item) => item.id === state.selectedID);
+      if (!step) {
+        els.detailPanel.append(emptyNode(state.steps.length ? "No step selected" : "No summary loaded"));
+        return;
+      }
+
+      const header = document.createElement("div");
+      header.className = "detail-header";
+
+      const titleWrap = document.createElement("div");
+      const title = document.createElement("h2");
+      title.className = "detail-title";
+      title.textContent = step.displayName || step.name || step.id;
+      const subtitle = document.createElement("div");
+      subtitle.className = "detail-subtitle";
+      subtitle.textContent = step.name || step.id;
+      titleWrap.append(title, subtitle);
+
+      const status = pill(step.status || "UNKNOWN", "status-" + step.status);
+      header.append(titleWrap, status);
+
+      const grid = document.createElement("div");
+      grid.className = "detail-grid";
+      grid.append(
+        field("ID", step.id),
+        field("Category", step.category),
+        field("Duration", step.duration || "-"),
+        field("Lines", lineRange(step)),
+        field("Step", stepIndex(step) || "-"),
+        field("Instruction", step.instruction || "-"),
+        field("Outputs", String(step.outputCount)),
+        field("Progress", String(step.progressCount))
+      );
+
+      els.detailPanel.append(header, grid);
+
+      if (step.errorDetail) {
+        els.detailPanel.append(section("Error", diagnostic(step.errorDetail, "error")));
+      }
+      if (step.warningDetail) {
+        els.detailPanel.append(section("Warning", diagnostic(step.warningDetail, "warning")));
+      }
+      if (step.outputTail.length) {
+        const pre = document.createElement("pre");
+        pre.textContent = step.outputTail.join("\n");
+        els.detailPanel.append(section("Output Tail", pre));
+      }
+    }
+
+    function compactMeta(step) {
+      return [
+        step.id,
+        stepIndex(step),
+        step.duration,
+        lineRange(step)
+      ].filter(Boolean).join("  ");
+    }
+
+    function stepIndex(step) {
+      if (!step.index || !step.total) return "";
+      return (step.stage ? step.stage + " " : "") + step.index + "/" + step.total;
+    }
+
+    function lineRange(step) {
+      if (!step.startLine || !step.endLine) return "";
+      return step.startLine === step.endLine ? "line " + step.startLine : "lines " + step.startLine + "-" + step.endLine;
+    }
+
+    function field(label, value) {
+      const node = document.createElement("div");
+      node.className = "field";
+      const name = document.createElement("div");
+      name.className = "field-label";
+      name.textContent = label;
+      const detail = document.createElement("div");
+      detail.className = "field-value";
+      detail.textContent = value;
+      node.append(name, detail);
+      return node;
+    }
+
+    function section(title, content) {
+      const node = document.createElement("section");
+      node.className = "section";
+      const heading = document.createElement("h3");
+      heading.textContent = title;
+      node.append(heading, content);
+      return node;
+    }
+
+    function diagnostic(text, kind) {
+      const node = document.createElement("div");
+      node.className = "diagnostic " + kind;
+      node.textContent = text;
+      return node;
+    }
+
+    function pill(text, className) {
+      const node = document.createElement("span");
+      node.className = "pill " + className;
+      node.textContent = text;
+      return node;
+    }
+
+    function emptyNode(text) {
+      const node = document.createElement("div");
+      node.className = "empty";
+      node.textContent = text;
+      return node;
+    }
+
+    function showError(error) {
+      state.steps = [];
+      state.filtered = [];
+      state.selectedID = "";
+      state.sourceName = "";
+      els.clearButton.disabled = true;
+      els.sourceName.textContent = error.message || "Invalid summary JSON";
+      renderMetrics();
+      renderTimeline();
+      renderSteps();
+      els.detailPanel.replaceChildren();
+      els.detailPanel.append(emptyNode("Invalid summary JSON"));
+    }
+
+    loadSummary([], "");
+  </script>
+</body>
+</html>
