@@ -209,6 +209,62 @@ func TestRunSummaryCompactGolden(t *testing.T) {
 	}
 }
 
+func TestRunSummaryVisualizationContractFields(t *testing.T) {
+	input, err := os.ReadFile("../../testdata/visualization_contract_plain.log")
+	if err != nil {
+		t.Fatalf("read input fixture: %v", err)
+	}
+
+	var out bytes.Buffer
+	err = run([]string{"dobl", "summary", "--compact"}, bytes.NewReader(input), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	var decoded []map[string]json.RawMessage
+	if err := json.Unmarshal(out.Bytes(), &decoded); err != nil {
+		t.Fatalf("invalid json output: %v", err)
+	}
+	if len(decoded) != 8 {
+		t.Fatalf("step count = %d, want 8", len(decoded))
+	}
+
+	required := []string{
+		"id",
+		"order",
+		"name",
+		"display_name",
+		"category",
+		"status",
+		"output_count",
+		"progress_count",
+		"warning_count",
+		"unknown_count",
+		"start_line",
+		"end_line",
+	}
+	for _, step := range decoded {
+		for _, field := range required {
+			if _, ok := step[field]; !ok {
+				t.Fatalf("step %s missing contract field %q", step["id"], field)
+			}
+		}
+		if _, ok := step["events"]; ok {
+			t.Fatalf("step %s includes events without --events", step["id"])
+		}
+	}
+
+	assertRawJSON(t, decoded[1], "category", `"cache"`)
+	assertRawJSON(t, decoded[1], "status", `"WARNING"`)
+	assertRawJSON(t, decoded[1], "warning_detail", `"local cache import failed"`)
+	assertRawJSON(t, decoded[3], "category", `"dockerfile"`)
+	assertRawJSON(t, decoded[3], "status", `"ERROR"`)
+	assertRawJSON(t, decoded[3], "output_tail", `["0.101 one","0.102 two"]`)
+	assertRawJSON(t, decoded[4], "stage", `"stage-1"`)
+	assertRawJSON(t, decoded[5], "category", `"provenance"`)
+	assertRawJSON(t, decoded[7], "category", `"export"`)
+}
+
 func TestRunSummaryTableFormat(t *testing.T) {
 	var out bytes.Buffer
 	err := run([]string{"dobl", "summary", "--format", "table"}, strings.NewReader("#1 [build 1/2] RUN echo hi\n#1 0.100 hi\n#1 ERROR: failed\n"), &out)
@@ -590,5 +646,17 @@ func TestRunRejectsUnknownCommand(t *testing.T) {
 	err := run([]string{"dobl", "unknown"}, strings.NewReader(""), &out)
 	if err == nil {
 		t.Fatal("run returned nil error")
+	}
+}
+
+func assertRawJSON(t *testing.T, object map[string]json.RawMessage, field string, want string) {
+	t.Helper()
+
+	got, ok := object[field]
+	if !ok {
+		t.Fatalf("missing field %q", field)
+	}
+	if string(got) != want {
+		t.Fatalf("%s = %s, want %s", field, got, want)
 	}
 }
