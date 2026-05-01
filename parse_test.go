@@ -160,8 +160,17 @@ func TestBuildLogSteps(t *testing.T) {
 	if first.ID != "#1" {
 		t.Fatalf("first step id = %q, want #1", first.ID)
 	}
+	if first.Order != 1 {
+		t.Fatalf("first step order = %d, want 1", first.Order)
+	}
 	if first.Name != "[internal] load build definition from Dockerfile" {
 		t.Fatalf("first step name = %q", first.Name)
+	}
+	if first.DisplayName != "[internal] load build definition from Dockerfile" {
+		t.Fatalf("first step display name = %q", first.DisplayName)
+	}
+	if first.Category != StepCategoryInternal {
+		t.Fatalf("first step category = %q, want internal", first.Category)
 	}
 	if first.Status != EventStatusDone {
 		t.Fatalf("first step status = %q, want DONE", first.Status)
@@ -182,8 +191,17 @@ func TestBuildLogSteps(t *testing.T) {
 	if last.ID != "#6" {
 		t.Fatalf("last step id = %q, want #6", last.ID)
 	}
+	if last.Order != 6 {
+		t.Fatalf("last step order = %d, want 6", last.Order)
+	}
 	if last.Name != "exporting to image" {
 		t.Fatalf("last step name = %q", last.Name)
+	}
+	if last.DisplayName != "exporting to image" {
+		t.Fatalf("last step display name = %q", last.DisplayName)
+	}
+	if last.Category != StepCategoryExport {
+		t.Fatalf("last step category = %q, want export", last.Category)
 	}
 	if last.Status != EventStatusDone {
 		t.Fatalf("last step status = %q, want DONE", last.Status)
@@ -221,6 +239,12 @@ func TestBuildLogStepsInterleavedFixture(t *testing.T) {
 	if step3.Name != "[build 1/3] RUN go mod download" {
 		t.Fatalf("step #3 name = %q", step3.Name)
 	}
+	if step3.DisplayName != "RUN go mod download" {
+		t.Fatalf("step #3 display name = %q", step3.DisplayName)
+	}
+	if step3.Category != StepCategoryDockerfile {
+		t.Fatalf("step #3 category = %q, want dockerfile", step3.Category)
+	}
 	assertStepNameMetadata(t, step3, "build", 1, 3, "RUN")
 	if step3.Status != EventStatusDone {
 		t.Fatalf("step #3 status = %q, want DONE", step3.Status)
@@ -251,8 +275,65 @@ func TestBuildLogStepsInterleavedFixture(t *testing.T) {
 	if step8.Name != "exporting cache to local directory" {
 		t.Fatalf("step #8 name = %q", step8.Name)
 	}
+	if step8.Category != StepCategoryCache {
+		t.Fatalf("step #8 category = %q, want cache", step8.Category)
+	}
 	if step8.Status != EventStatusDone {
 		t.Fatalf("step #8 status = %q, want DONE", step8.Status)
+	}
+}
+
+func TestBuildLogStepsDisplayMetadata(t *testing.T) {
+	input := strings.NewReader(strings.Join([]string{
+		"#1 [internal] load build definition from Dockerfile",
+		"#1 DONE 0.0s",
+		"#2 [1/2] FROM docker.io/library/alpine:3.20",
+		"#2 DONE 0.0s",
+		"#3 [build 2/2] RUN echo hi",
+		"#3 DONE 0.1s",
+		"#4 exporting to image",
+		"#4 DONE 0.0s",
+		"#5 importing cache manifest from local:cache",
+		"#5 WARNING: cache import failed",
+		"#6 resolving provenance for metadata file",
+		"#6 DONE 0.0s",
+		"#7 resolving docker.io/library/alpine:latest done",
+	}, "\n"))
+
+	log, err := Parse(input)
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	steps := log.Steps()
+	tests := []struct {
+		id          string
+		order       int
+		category    StepCategory
+		displayName string
+	}{
+		{id: "#1", order: 1, category: StepCategoryInternal, displayName: "[internal] load build definition from Dockerfile"},
+		{id: "#2", order: 2, category: StepCategoryDockerfile, displayName: "FROM docker.io/library/alpine:3.20"},
+		{id: "#3", order: 3, category: StepCategoryDockerfile, displayName: "RUN echo hi"},
+		{id: "#4", order: 4, category: StepCategoryExport, displayName: "exporting to image"},
+		{id: "#5", order: 5, category: StepCategoryCache, displayName: "importing cache manifest from local:cache"},
+		{id: "#6", order: 6, category: StepCategoryProvenance, displayName: "resolving provenance for metadata file"},
+		{id: "#7", order: 7, category: StepCategoryOther, displayName: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			step := findStep(t, steps, tt.id)
+			if step.Order != tt.order {
+				t.Fatalf("order = %d, want %d", step.Order, tt.order)
+			}
+			if step.Category != tt.category {
+				t.Fatalf("category = %q, want %q", step.Category, tt.category)
+			}
+			if step.DisplayName != tt.displayName {
+				t.Fatalf("display name = %q, want %q", step.DisplayName, tt.displayName)
+			}
+		})
 	}
 }
 

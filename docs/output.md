@@ -30,13 +30,18 @@ Event fields:
 `dobl summary --compact testdata/error_plain.log` emits derived step summaries:
 
 ```json
-[{"id":"#1","name":"[internal] load build definition from Dockerfile","status":"DONE","duration":"0.0s","duration_nanos":0,"output_count":0,"progress_count":1,"unknown_count":0,"start_line":1,"end_line":3},{"id":"#2","name":"[internal] load metadata for docker.io/library/alpine:3.20","status":"DONE","duration":"0.4s","duration_nanos":400000000,"output_count":0,"progress_count":0,"unknown_count":0,"start_line":4,"end_line":5},{"id":"#3","name":"[1/1] RUN echo before && exit 1","status":"ERROR","index":1,"total":1,"instruction":"RUN","output_count":2,"progress_count":0,"unknown_count":0,"error_detail":"process \"/bin/sh -c echo before && exit 1\" did not complete successfully: exit code: 2","start_line":6,"end_line":9}]
+[{"id":"#1","order":1,"name":"[internal] load build definition from Dockerfile","display_name":"[internal] load build definition from Dockerfile","category":"internal","status":"DONE","duration":"0.0s","duration_nanos":0,"output_count":0,"progress_count":1,"unknown_count":0,"start_line":1,"end_line":3},{"id":"#2","order":2,"name":"[internal] load metadata for docker.io/library/alpine:3.20","display_name":"[internal] load metadata for docker.io/library/alpine:3.20","category":"internal","status":"DONE","duration":"0.4s","duration_nanos":400000000,"output_count":0,"progress_count":0,"unknown_count":0,"start_line":4,"end_line":5},{"id":"#3","order":3,"name":"[1/1] RUN echo before && exit 1","display_name":"RUN echo before && exit 1","category":"dockerfile","status":"ERROR","index":1,"total":1,"instruction":"RUN","output_count":2,"progress_count":0,"unknown_count":0,"error_detail":"process \"/bin/sh -c echo before && exit 1\" did not complete successfully: exit code: 2","start_line":6,"end_line":9}]
 ```
 
 Summary fields:
 
 - `id`: BuildKit step ID.
+- `order`: first-seen summary order, starting at 1.
 - `name`: first parsed step name for the ID.
+- `display_name`: UI-oriented step label. Dockerfile step prefixes such as
+  `[build 1/3]` are removed.
+- `category`: broad reporting category. One of `dockerfile`, `internal`,
+  `export`, `cache`, `provenance`, or `other`.
 - `status`: latest parsed status for the step.
 - `duration`: latest parsed duration text for the step.
 - `duration_nanos`: parsed duration in nanoseconds when available.

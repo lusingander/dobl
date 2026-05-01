@@ -34,6 +34,18 @@ const (
 	EventStatusProgress EventStatus = "PROGRESS"
 )
 
+// StepCategory identifies a broad UI/reporting category for a build step.
+type StepCategory string
+
+const (
+	StepCategoryDockerfile StepCategory = "dockerfile"
+	StepCategoryInternal   StepCategory = "internal"
+	StepCategoryExport     StepCategory = "export"
+	StepCategoryCache      StepCategory = "cache"
+	StepCategoryProvenance StepCategory = "provenance"
+	StepCategoryOther      StepCategory = "other"
+)
+
 // BuildLog is the intermediate representation for a parsed build log.
 type BuildLog struct {
 	Events []Event `json:"events"`
@@ -58,8 +70,10 @@ func (l *BuildLog) Steps() []Step {
 			indexes[event.StepID] = index
 			steps = append(steps, Step{
 				ID:        event.StepID,
+				Order:     index + 1,
 				StartLine: event.Line,
 				EndLine:   event.Line,
+				Category:  StepCategoryOther,
 			})
 		}
 
@@ -79,6 +93,7 @@ func (s *Step) applyEvent(event Event) {
 		if s.Name == "" {
 			s.Name = event.Detail
 			s.applyNameMetadata(event.Detail)
+			s.applyDisplayMetadata(event.Detail)
 		}
 	case EventStepStatus:
 		if event.Status == EventStatusProgress {
@@ -125,24 +140,32 @@ func (s *Step) applyNameMetadata(name string) {
 	s.Instruction = match[4]
 }
 
+func (s *Step) applyDisplayMetadata(name string) {
+	s.Category = categorizeStepName(name, s.Instruction != "")
+	s.DisplayName = displayStepName(name)
+}
+
 // Step is an aggregate view of all events with the same BuildKit step ID.
 type Step struct {
-	ID            string      `json:"id"`
-	Name          string      `json:"name,omitempty"`
-	Status        EventStatus `json:"status,omitempty"`
-	Duration      string      `json:"duration,omitempty"`
-	DurationNanos *int64      `json:"duration_nanos,omitempty"`
-	Stage         string      `json:"stage,omitempty"`
-	Index         int         `json:"index,omitempty"`
-	Total         int         `json:"total,omitempty"`
-	Instruction   string      `json:"instruction,omitempty"`
-	OutputCount   int         `json:"output_count"`
-	ProgressCount int         `json:"progress_count"`
-	UnknownCount  int         `json:"unknown_count"`
-	ErrorDetail   string      `json:"error_detail,omitempty"`
-	StartLine     int         `json:"start_line"`
-	EndLine       int         `json:"end_line"`
-	Events        []Event     `json:"events,omitempty"`
+	ID            string       `json:"id"`
+	Order         int          `json:"order"`
+	Name          string       `json:"name,omitempty"`
+	DisplayName   string       `json:"display_name,omitempty"`
+	Category      StepCategory `json:"category,omitempty"`
+	Status        EventStatus  `json:"status,omitempty"`
+	Duration      string       `json:"duration,omitempty"`
+	DurationNanos *int64       `json:"duration_nanos,omitempty"`
+	Stage         string       `json:"stage,omitempty"`
+	Index         int          `json:"index,omitempty"`
+	Total         int          `json:"total,omitempty"`
+	Instruction   string       `json:"instruction,omitempty"`
+	OutputCount   int          `json:"output_count"`
+	ProgressCount int          `json:"progress_count"`
+	UnknownCount  int          `json:"unknown_count"`
+	ErrorDetail   string       `json:"error_detail,omitempty"`
+	StartLine     int          `json:"start_line"`
+	EndLine       int          `json:"end_line"`
+	Events        []Event      `json:"events,omitempty"`
 }
 
 // Event is one parsed line from a docker build/buildx --progress=plain log.
@@ -168,6 +191,7 @@ type Event struct {
 var (
 	ansiEscapeRE         = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]`)
 	dockerfileStepNameRE = regexp.MustCompile(`^\[(?:(.+)\s+)?(\d+)/(\d+)\]\s+(\S+)`)
+	displayStepNameRE    = regexp.MustCompile(`^\[(?:(?:.+)\s+)?\d+/\d+\]\s+(.+)$`)
 	logPrefixRE          = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})(?:\s+(?:stdout|stderr)\s+[FP])?\s+`)
 	stepLineRE           = regexp.MustCompile(`^#(\d+)\s*(.*)$`)
 	stepStartRE          = regexp.MustCompile(`^\[[^\]]+\]\s+.+$`)
@@ -291,6 +315,32 @@ func isStepStartDetail(detail string) bool {
 
 func isProgressDetail(detail string) bool {
 	return strings.HasSuffix(detail, " done")
+}
+
+func categorizeStepName(name string, dockerfileStep bool) StepCategory {
+	switch {
+	case dockerfileStep:
+		return StepCategoryDockerfile
+	case strings.HasPrefix(name, "[internal] "):
+		return StepCategoryInternal
+	case strings.HasPrefix(name, "exporting to "):
+		return StepCategoryExport
+	case strings.HasPrefix(name, "exporting cache to "),
+		strings.HasPrefix(name, "importing cache manifest from "):
+		return StepCategoryCache
+	case strings.HasPrefix(name, "resolving provenance for "):
+		return StepCategoryProvenance
+	default:
+		return StepCategoryOther
+	}
+}
+
+func displayStepName(name string) string {
+	match := displayStepNameRE.FindStringSubmatch(name)
+	if match == nil {
+		return name
+	}
+	return match[1]
 }
 
 func extractDuration(detail string) string {

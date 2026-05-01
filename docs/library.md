@@ -51,7 +51,10 @@ Duration handling:
 Each `Step` includes:
 
 - `id`
+- `order`
 - `name`
+- `display_name`
+- `category`
 - `status`
 - `duration`
 - `duration_nanos`
@@ -75,3 +78,22 @@ Dockerfile step metadata is extracted from names such as:
 
 Internal BuildKit steps such as `[internal] load metadata ...` and export
 steps are not treated as Dockerfile step metadata.
+
+## Visualization Metadata
+
+Step summaries include a small set of additive fields intended for reports and
+visualizations:
+
+- `order` is the first-seen summary order, starting at 1.
+- `display_name` is a UI-oriented label. Dockerfile step prefixes such as
+  `[build 1/3]` are removed, while non-Dockerfile step names are preserved.
+- `category` groups steps into broad reporting buckets:
+  - `dockerfile`
+  - `internal`
+  - `export`
+  - `cache`
+  - `provenance`
+  - `other`
+
+`name` remains the parsed BuildKit step name and should be used when a rawer
+label is needed.
