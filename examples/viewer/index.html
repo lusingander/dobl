@@ -761,25 +761,32 @@
         segment.className = "timeline-segment category-" + step.category;
         segment.title = step.id + " " + (step.displayName || step.name);
         segment.addEventListener("click", () => {
-          state.selectedID = step.id;
-          renderSteps();
-          renderDetail();
+          selectStep(step.id);
         });
         timeline.append(segment);
       }
       document.querySelector("main").insertBefore(timeline, document.querySelector(".workspace"));
     }
 
-    function renderSteps() {
+    function selectStep(id, options = {}) {
+      state.selectedID = id;
+      renderSteps({ preserveScroll: options.preserveStepScroll === true });
+      renderDetail();
+    }
+
+    function renderSteps(options = {}) {
+      const previousScrollTop = options.preserveScroll ? els.stepList.scrollTop : 0;
       els.visibleCount.textContent = state.filtered.length + " shown";
       els.stepList.replaceChildren();
 
       if (!state.steps.length) {
         els.stepList.append(emptyNode("No summary loaded"));
+        restoreStepListScroll(previousScrollTop, options);
         return;
       }
       if (!state.filtered.length) {
         els.stepList.append(emptyNode("No matching steps"));
+        restoreStepListScroll(previousScrollTop, options);
         return;
       }
 
@@ -789,9 +796,7 @@
         button.className = "step-card";
         button.setAttribute("aria-selected", step.id === state.selectedID ? "true" : "false");
         button.addEventListener("click", () => {
-          state.selectedID = step.id;
-          renderSteps();
-          renderDetail();
+          selectStep(step.id, { preserveStepScroll: true });
         });
 
         const stripe = document.createElement("span");
@@ -818,6 +823,13 @@
         button.append(body);
         els.stepList.append(button);
       }
+      restoreStepListScroll(previousScrollTop, options);
+    }
+
+    function restoreStepListScroll(previousScrollTop, options) {
+      if (!options.preserveScroll) return;
+      const maxScrollTop = Math.max(0, els.stepList.scrollHeight - els.stepList.clientHeight);
+      els.stepList.scrollTop = Math.min(previousScrollTop, maxScrollTop);
     }
 
     function renderDetail() {
