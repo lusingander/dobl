@@ -22,11 +22,17 @@
       --warning: #b26b00;
       --progress: #1f6f8b;
       --dockerfile: #1769aa;
+      --dockerfile-tint: #d9ebf7;
       --internal: #4d6278;
+      --internal-tint: #e2e8ef;
       --export: #1f7a4d;
+      --export-tint: #ddefe6;
       --cache: #6f5db7;
+      --cache-tint: #e8e3f6;
       --provenance: #8a5a16;
+      --provenance-tint: #f2e5ce;
       --other: #687385;
+      --other-tint: #e6e9ee;
       --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
       --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
@@ -345,22 +351,16 @@
     .status-PROGRESS { color: var(--progress); }
 
     .category-dockerfile,
-    .timeline-segment.category-dockerfile,
     .legend-swatch.category-dockerfile { background: var(--dockerfile); }
     .category-internal,
-    .timeline-segment.category-internal,
     .legend-swatch.category-internal { background: var(--internal); }
     .category-export,
-    .timeline-segment.category-export,
     .legend-swatch.category-export { background: var(--export); }
     .category-cache,
-    .timeline-segment.category-cache,
     .legend-swatch.category-cache { background: var(--cache); }
     .category-provenance,
-    .timeline-segment.category-provenance,
     .legend-swatch.category-provenance { background: var(--provenance); }
     .category-other,
-    .timeline-segment.category-other,
     .legend-swatch.category-other { background: var(--other); }
 
     .detail {
@@ -438,13 +438,33 @@
     }
 
     .timeline-segment {
+      position: relative;
       min-height: 22px;
       border: 0;
-      border-bottom: 4px solid currentColor;
       border-radius: 3px;
       background: var(--other);
+      color: var(--muted);
       padding: 0;
+      overflow: hidden;
     }
+
+    .timeline-segment::after {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 4px;
+      border-top: 2px solid var(--bg);
+      background: currentColor;
+      content: "";
+    }
+
+    .timeline-segment.category-dockerfile { background: var(--dockerfile-tint); }
+    .timeline-segment.category-internal { background: var(--internal-tint); }
+    .timeline-segment.category-export { background: var(--export-tint); }
+    .timeline-segment.category-cache { background: var(--cache-tint); }
+    .timeline-segment.category-provenance { background: var(--provenance-tint); }
+    .timeline-segment.category-other { background: var(--other-tint); }
 
     .timeline-legend {
       display: flex;
@@ -483,7 +503,8 @@
 
     .legend-line {
       width: 14px;
-      height: 4px;
+      height: 6px;
+      border-top: 2px solid var(--bg);
       border-radius: 999px;
       background: currentColor;
     }
