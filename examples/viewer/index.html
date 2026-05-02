@@ -461,10 +461,24 @@
       margin-top: 14px;
     }
 
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
     .section h3 {
-      margin: 0 0 8px;
+      margin: 0;
       font-size: 14px;
       letter-spacing: 0;
+    }
+
+    .copy-button {
+      min-height: 28px;
+      padding: 0 9px;
+      font-size: 12px;
     }
 
     .diagnostic {
@@ -1035,15 +1049,16 @@
       els.detailPanel.append(header, grid);
 
       if (step.errorDetail) {
-        els.detailPanel.append(section("Error", diagnostic(step.errorDetail, "error")));
+        els.detailPanel.append(section("Error", diagnostic(step.errorDetail, "error"), copyButton(step.errorDetail)));
       }
       if (step.warningDetail) {
-        els.detailPanel.append(section("Warning", diagnostic(step.warningDetail, "warning")));
+        els.detailPanel.append(section("Warning", diagnostic(step.warningDetail, "warning"), copyButton(step.warningDetail)));
       }
       if (step.outputTail.length) {
+        const outputText = step.outputTail.join("\n");
         const pre = document.createElement("pre");
-        pre.textContent = step.outputTail.join("\n");
-        els.detailPanel.append(section("Output Tail", pre));
+        pre.textContent = outputText;
+        els.detailPanel.append(section("Output Tail", pre, copyButton(outputText)));
       }
     }
 
@@ -1079,13 +1094,53 @@
       return node;
     }
 
-    function section(title, content) {
+    function section(title, content, action) {
       const node = document.createElement("section");
       node.className = "section";
+      const head = document.createElement("div");
+      head.className = "section-head";
       const heading = document.createElement("h3");
       heading.textContent = title;
-      node.append(heading, content);
+      head.append(heading);
+      if (action) head.append(action);
+      node.append(head, content);
       return node;
+    }
+
+    function copyButton(text) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "copy-button";
+      button.textContent = "Copy";
+      button.addEventListener("click", async () => {
+        try {
+          await copyText(text);
+          button.textContent = "Copied";
+        } catch (error) {
+          button.textContent = "Failed";
+        }
+        window.setTimeout(() => {
+          button.textContent = "Copy";
+        }, 1200);
+      });
+      return button;
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+
+      const field = document.createElement("textarea");
+      field.value = text;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.top = "-1000px";
+      document.body.append(field);
+      field.select();
+      document.execCommand("copy");
+      field.remove();
     }
 
     function diagnostic(text, kind) {
