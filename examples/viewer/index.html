@@ -277,6 +277,10 @@
       padding-inline: 10px;
     }
 
+    .search-filter {
+      min-width: 160px;
+    }
+
     .step-list {
       min-height: 0;
       overflow: auto;
@@ -354,11 +358,14 @@
     .step-row {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 8px;
       min-width: 0;
     }
 
     .step-title {
+      flex: 1 1 160px;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -373,6 +380,10 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .step-row .pill {
+      flex: 0 0 auto;
     }
 
     .pill {
@@ -694,6 +705,16 @@
       }
     }
 
+    @media (max-width: 1180px) and (min-width: 981px) {
+      .filters {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .search-filter {
+        grid-column: 1 / -1;
+      }
+    }
+
     @media (max-width: 640px) {
       .topbar,
       main {
@@ -770,7 +791,7 @@
           <div class="pill pill-muted" id="visible-count">0 shown</div>
         </div>
         <div class="filters">
-          <input id="search-input" type="search" placeholder="Search" autocomplete="off">
+          <input class="search-filter" id="search-input" type="search" placeholder="Search" autocomplete="off">
           <select id="status-filter" aria-label="Status">
             <option value="">Status</option>
             <option value="DONE">DONE</option>
@@ -789,7 +810,7 @@
             <option value="provenance">provenance</option>
             <option value="other">other</option>
           </select>
-          <button class="clear-filters-button" id="clear-filters-button" type="button" disabled>Clear Filters</button>
+          <button class="clear-filters-button" id="clear-filters-button" type="button" disabled>Clear</button>
         </div>
         <div class="step-list" id="step-list"></div>
       </div>
