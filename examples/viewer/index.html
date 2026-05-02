@@ -953,10 +953,14 @@
         const segment = document.createElement("button");
         segment.type = "button";
         segment.className = "timeline-segment category-" + step.category + " status-" + step.status;
+        segment.dataset.stepId = step.id;
+        segment.setAttribute("aria-current", step.id === state.selectedID ? "step" : "false");
+        segment.tabIndex = step.id === state.selectedID ? 0 : -1;
         segment.title = step.id + " " + (step.displayName || step.name);
         segment.addEventListener("click", () => {
           selectStep(step.id, { scrollStepIntoView: true });
         });
+        segment.addEventListener("keydown", handleTimelineKeydown);
         timeline.append(segment);
       }
       panel.append(timeline, timelineLegend());
@@ -1003,13 +1007,63 @@
       return group;
     }
 
+    function handleTimelineKeydown(event) {
+      const id = stepIDFromKey(event, state.steps);
+      if (!id) return;
+      event.preventDefault();
+      selectStep(id, { scrollStepIntoView: true, focusTimeline: true });
+    }
+
+    function handleStepKeydown(event) {
+      const id = stepIDFromKey(event, state.filtered);
+      if (!id) return;
+      event.preventDefault();
+      selectStep(id, { scrollStepIntoView: true, focusStep: true });
+    }
+
+    function stepIDFromKey(event, steps) {
+      if (!steps.length) return "";
+
+      const currentIndex = Math.max(0, steps.findIndex((step) => step.id === state.selectedID));
+      switch (event.key) {
+      case "ArrowDown":
+      case "ArrowRight":
+        return steps[Math.min(currentIndex + 1, steps.length - 1)].id;
+      case "ArrowUp":
+      case "ArrowLeft":
+        return steps[Math.max(currentIndex - 1, 0)].id;
+      case "Home":
+        return steps[0].id;
+      case "End":
+        return steps[steps.length - 1].id;
+      case "Enter":
+      case " ":
+        return state.selectedID;
+      default:
+        return "";
+      }
+    }
+
     function selectStep(id, options = {}) {
       state.selectedID = id;
       renderSteps({
         preserveScroll: options.preserveStepScroll === true,
         scrollSelectedIntoView: options.scrollStepIntoView === true
       });
+      renderTimeline();
       renderDetail();
+      if (options.focusStep === true) focusSelectedStep();
+      if (options.focusTimeline === true) focusSelectedTimelineSegment();
+    }
+
+    function focusSelectedStep() {
+      const selected = selectedStepElement();
+      if (selected) selected.focus();
+    }
+
+    function focusSelectedTimelineSegment() {
+      const selected = selectedTimelineSegment();
+      if (selected) selected.focus();
     }
 
     function renderSteps(options = {}) {
@@ -1034,9 +1088,11 @@
         button.className = "step-card";
         button.dataset.stepId = step.id;
         button.setAttribute("aria-selected", step.id === state.selectedID ? "true" : "false");
+        button.tabIndex = step.id === state.selectedID ? 0 : -1;
         button.addEventListener("click", () => {
           selectStep(step.id, { preserveStepScroll: true });
         });
+        button.addEventListener("keydown", handleStepKeydown);
 
         const stripe = document.createElement("span");
         stripe.className = "step-stripe category-" + step.category;
@@ -1074,9 +1130,7 @@
 
     function scrollSelectedStepIntoView(options) {
       if (!options.scrollSelectedIntoView) return;
-      const selected = Array.from(els.stepList.children).find((child) => {
-        return child.dataset && child.dataset.stepId === state.selectedID;
-      });
+      const selected = selectedStepElement();
       if (!selected) return;
 
       const listRect = els.stepList.getBoundingClientRect();
@@ -1085,6 +1139,23 @@
       const targetTop = selectedTop - ((els.stepList.clientHeight - selectedRect.height) / 2);
       const maxScrollTop = Math.max(0, els.stepList.scrollHeight - els.stepList.clientHeight);
       els.stepList.scrollTop = Math.max(0, Math.min(targetTop, maxScrollTop));
+    }
+
+    function selectedStepElement() {
+      return Array.from(els.stepList.children).find((child) => {
+        return child.dataset && child.dataset.stepId === state.selectedID;
+      });
+    }
+
+    function selectedTimelineSegment() {
+      return document.querySelector('.timeline-segment[data-step-id="' + cssEscape(state.selectedID) + '"]');
+    }
+
+    function cssEscape(value) {
+      if (window.CSS && typeof window.CSS.escape === "function") {
+        return window.CSS.escape(value);
+      }
+      return String(value).replace(/"/g, '\\"');
     }
 
     function renderDetail() {
