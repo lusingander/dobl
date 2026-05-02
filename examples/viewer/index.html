@@ -437,10 +437,22 @@
     .timeline-legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px 12px;
+      gap: 8px 18px;
       align-items: center;
       color: var(--muted);
       font-size: 12px;
+    }
+
+    .legend-group {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      align-items: center;
+    }
+
+    .legend-label {
+      color: var(--text);
+      font-weight: 700;
     }
 
     .legend-item {
@@ -916,25 +928,39 @@
       legend.className = "timeline-legend";
       legend.setAttribute("aria-label", "Timeline legend");
 
+      const categoryGroup = legendGroup("Category");
       for (const category of categoryValues) {
         const item = document.createElement("span");
         item.className = "legend-item";
         const swatch = document.createElement("span");
         swatch.className = "legend-swatch category-" + category;
         item.append(swatch, document.createTextNode(category));
-        legend.append(item);
+        categoryGroup.append(item);
       }
+      legend.append(categoryGroup);
 
+      const statusGroup = legendGroup("Status");
       for (const status of statusValues) {
         const item = document.createElement("span");
         item.className = "legend-item status-" + status;
         const line = document.createElement("span");
         line.className = "legend-line";
         item.append(line, document.createTextNode(status));
-        legend.append(item);
+        statusGroup.append(item);
       }
+      legend.append(statusGroup);
 
       return legend;
+    }
+
+    function legendGroup(label) {
+      const group = document.createElement("span");
+      group.className = "legend-group";
+      const title = document.createElement("span");
+      title.className = "legend-label";
+      title.textContent = label;
+      group.append(title);
+      return group;
     }
 
     function selectStep(id, options = {}) {
@@ -1013,7 +1039,10 @@
       });
       if (!selected) return;
 
-      const targetTop = selected.offsetTop - ((els.stepList.clientHeight - selected.offsetHeight) / 2);
+      const listRect = els.stepList.getBoundingClientRect();
+      const selectedRect = selected.getBoundingClientRect();
+      const selectedTop = selectedRect.top - listRect.top + els.stepList.scrollTop;
+      const targetTop = selectedTop - ((els.stepList.clientHeight - selectedRect.height) / 2);
       const maxScrollTop = Math.max(0, els.stepList.scrollHeight - els.stepList.clientHeight);
       els.stepList.scrollTop = Math.max(0, Math.min(targetTop, maxScrollTop));
     }
