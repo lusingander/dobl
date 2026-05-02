@@ -36,13 +36,17 @@
     }
 
     body {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
       margin: 0;
+      min-height: 100vh;
       min-width: 320px;
       background: var(--bg);
       color: var(--text);
       font-family: var(--sans);
       font-size: 14px;
       line-height: 1.45;
+      overflow: hidden;
     }
 
     button,
@@ -157,16 +161,20 @@
     }
 
     main {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 14px;
       width: min(1440px, 100%);
+      min-height: 0;
       margin: 0 auto;
       padding: 18px 20px 24px;
+      overflow: hidden;
     }
 
     .stats {
       display: grid;
       grid-template-columns: repeat(6, minmax(120px, 1fr));
       gap: 10px;
-      margin-bottom: 14px;
     }
 
     .metric {
@@ -195,13 +203,21 @@
       grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1.55fr);
       gap: 14px;
       align-items: start;
+      min-height: 0;
     }
 
     .panel {
       min-width: 0;
+      min-height: 0;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel);
+    }
+
+    .steps-panel {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      height: 100%;
     }
 
     .panel-head {
@@ -238,8 +254,7 @@
     }
 
     .step-list {
-      max-height: calc(100vh - 220px);
-      min-height: 420px;
+      min-height: 0;
       overflow: auto;
       padding: 8px;
     }
@@ -330,7 +345,8 @@
     .category-other { background: var(--other); }
 
     .detail {
-      min-height: 536px;
+      height: 100%;
+      overflow: auto;
       padding: 16px;
     }
 
@@ -392,7 +408,6 @@
       grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
       gap: 3px;
       min-height: 22px;
-      margin-bottom: 14px;
     }
 
     .timeline-segment {
@@ -476,6 +491,30 @@
         max-height: none;
         min-height: 260px;
       }
+
+      body {
+        display: block;
+        overflow: auto;
+      }
+
+      main {
+        display: block;
+        height: auto;
+        overflow: visible;
+      }
+
+      .workspace {
+        margin-top: 14px;
+      }
+
+      .timeline {
+        margin-top: 14px;
+      }
+
+      .steps-panel,
+      .detail {
+        height: auto;
+      }
     }
 
     @media (max-width: 640px) {
@@ -547,7 +586,7 @@
     </section>
 
     <section class="workspace">
-      <div class="panel">
+      <div class="panel steps-panel">
         <div class="panel-head">
           <div class="panel-title">Steps</div>
           <div class="pill pill-muted" id="visible-count">0 shown</div>
