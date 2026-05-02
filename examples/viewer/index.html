@@ -947,7 +947,47 @@
         throw new Error("Expected a summary JSON array.");
       }
 
-      const required = [
+      for (let index = 0; index < value.length; index += 1) {
+        const step = value[index];
+        const label = "Summary item " + (index + 1);
+        if (!step || typeof step !== "object" || Array.isArray(step)) {
+          throw new Error(label + " must be an object.");
+        }
+        for (const field of requiredSummaryFields()) {
+          if (!(field in step)) {
+            throw new Error(label + " is missing " + field + ".");
+          }
+        }
+
+        validateStringField(step, "id", label, /^#[0-9]+$/);
+        validateIntegerField(step, "order", label, 1);
+        validateEnumField(step, "category", label, categoryValues);
+        validateOptionalEnumField(step, "status", label, statusValues);
+        validateOptionalStringField(step, "name", label);
+        validateOptionalStringField(step, "display_name", label);
+        validateOptionalStringField(step, "duration", label);
+        validateOptionalStringField(step, "stage", label);
+        validateOptionalStringField(step, "instruction", label);
+        validateOptionalStringField(step, "error_detail", label);
+        validateOptionalStringField(step, "warning_detail", label);
+        validateOptionalIntegerField(step, "duration_nanos", label, 0);
+        validateOptionalIntegerField(step, "index", label, 1);
+        validateOptionalIntegerField(step, "total", label, 1);
+        validateIntegerField(step, "output_count", label, 0);
+        validateIntegerField(step, "progress_count", label, 0);
+        validateIntegerField(step, "warning_count", label, 0);
+        validateIntegerField(step, "unknown_count", label, 0);
+        validateIntegerField(step, "start_line", label, 1);
+        validateIntegerField(step, "end_line", label, 1);
+        if (step.end_line < step.start_line) {
+          throw new Error(label + " has end_line before start_line.");
+        }
+        validateOptionalStringArrayField(step, "output_tail", label);
+      }
+    }
+
+    function requiredSummaryFields() {
+      return [
         "id",
         "order",
         "category",
@@ -958,22 +998,47 @@
         "start_line",
         "end_line"
       ];
-      for (let index = 0; index < value.length; index += 1) {
-        const step = value[index];
-        if (!step || typeof step !== "object" || Array.isArray(step)) {
-          throw new Error("Summary item " + (index + 1) + " must be an object.");
-        }
-        for (const field of required) {
-          if (!(field in step)) {
-            throw new Error("Summary item " + (index + 1) + " is missing " + field + ".");
-          }
-        }
-        if (typeof step.id !== "string" || !/^#[0-9]+$/.test(step.id)) {
-          throw new Error("Summary item " + (index + 1) + " has an invalid id.");
-        }
-        if (!Number.isFinite(step.order)) {
-          throw new Error("Summary item " + (index + 1) + " has an invalid order.");
-        }
+    }
+
+    function validateStringField(object, field, label, pattern) {
+      if (typeof object[field] !== "string" || (pattern && !pattern.test(object[field]))) {
+        throw new Error(label + " has an invalid " + field + ".");
+      }
+    }
+
+    function validateOptionalStringField(object, field, label) {
+      if (!(field in object)) return;
+      if (typeof object[field] !== "string") {
+        throw new Error(label + " has an invalid " + field + ".");
+      }
+    }
+
+    function validateIntegerField(object, field, label, minimum) {
+      if (!Number.isInteger(object[field]) || object[field] < minimum) {
+        throw new Error(label + " has an invalid " + field + ".");
+      }
+    }
+
+    function validateOptionalIntegerField(object, field, label, minimum) {
+      if (!(field in object)) return;
+      validateIntegerField(object, field, label, minimum);
+    }
+
+    function validateEnumField(object, field, label, values) {
+      if (typeof object[field] !== "string" || !values.includes(object[field])) {
+        throw new Error(label + " has an invalid " + field + ".");
+      }
+    }
+
+    function validateOptionalEnumField(object, field, label, values) {
+      if (!(field in object)) return;
+      validateEnumField(object, field, label, values);
+    }
+
+    function validateOptionalStringArrayField(object, field, label) {
+      if (!(field in object)) return;
+      if (!Array.isArray(object[field]) || object[field].some((item) => typeof item !== "string")) {
+        throw new Error(label + " has an invalid " + field + ".");
       }
     }
 
