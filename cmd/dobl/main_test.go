@@ -274,7 +274,15 @@ func TestViewerSampleMatchesVisualizationContractGolden(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read visualization golden: %v", err)
 	}
-	if strings.TrimSpace(string(sample)) != strings.TrimSpace(string(golden)) {
+	var compactSample bytes.Buffer
+	if err := json.Compact(&compactSample, sample); err != nil {
+		t.Fatalf("viewer sample is invalid json: %v", err)
+	}
+	var compactGolden bytes.Buffer
+	if err := json.Compact(&compactGolden, golden); err != nil {
+		t.Fatalf("visualization golden is invalid json: %v", err)
+	}
+	if compactSample.String() != compactGolden.String() {
 		t.Fatal("viewer sample does not match visualization contract golden")
 	}
 }
