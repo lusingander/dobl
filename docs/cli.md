@@ -52,6 +52,7 @@ dobl summary build.log
 dobl summary --format table build.log
 dobl summary --format table --wide build.log
 dobl summary --failed --format table build.log
+dobl summary --warnings --format table build.log
 dobl summary --status ERROR build.log
 dobl summary --stage build --instruction RUN build.log
 dobl summary --step '#3' build.log
@@ -68,6 +69,9 @@ Flags:
 - `--failed`
   - Include only failed steps. This includes `ERROR` and `CANCELED`, but not
     `WARNING`.
+- `--warnings`
+  - Include only warning steps. This includes steps with `WARNING` status or
+    parsed warning events.
 - `--status STATUS`
   - Include only steps with the given status.
   - Supported statuses: `DONE`, `CACHED`, `ERROR`, `CANCELED`, `WARNING`,
@@ -79,6 +83,7 @@ Flags:
     case-insensitive.
 - `--step ID`
   - Include only a specific BuildKit step ID. Both `#3` and `3` are accepted.
+  - Malformed IDs such as `abc` are rejected.
 - `--wide`
   - Do not truncate table error details. Only supported with `--format table`.
 - `-h`, `--help`
@@ -89,6 +94,8 @@ Flags:
 Invalid flag combinations are rejected before reading input:
 
 - `--failed` and `--status` cannot be used together.
+- `--warnings` and `--status` cannot be used together.
+- `--failed` and `--warnings` cannot be used together.
 - `--events` is only supported with `--format json`.
 - `--compact` is only supported with `--format json`.
 - `--wide` is only supported with `--format table`.

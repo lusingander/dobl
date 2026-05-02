@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 
@@ -41,6 +42,7 @@ type summaryCmd struct {
 	Compact     bool   `help:"Emit compact JSON."`
 	Events      bool   `help:"Include source events in each step."`
 	Failed      bool   `help:"Only include failed steps."`
+	Warnings    bool   `help:"Only include warning steps."`
 	Format      string `default:"json" enum:"json,table" help:"Output format."`
 	Status      string `placeholder:"STATUS" help:"Only include steps with this status. One of: DONE, CACHED, ERROR, CANCELED, WARNING, PROGRESS."`
 	Stage       string `placeholder:"STAGE" help:"Only include Dockerfile steps from this stage."`
@@ -62,6 +64,7 @@ func (c *summaryCmd) Help() string {
   dobl summary --format table build.log
   dobl summary --format table --wide build.log
   dobl summary --failed --format table build.log
+  dobl summary --warnings --format table build.log
   dobl summary --status ERROR build.log
   dobl summary --stage build --instruction RUN build.log
   dobl summary --step '#3' build.log`
@@ -98,6 +101,9 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 	if c.Failed {
 		steps = filterFailedSteps(steps)
 	}
+	if c.Warnings {
+		steps = filterWarningSteps(steps)
+	}
 	if c.Status != "" {
 		status := dobl.EventStatus(c.Status)
 		steps = filterStepsByStatus(steps, status)
@@ -131,8 +137,17 @@ func (c *summaryCmd) validate() error {
 	if c.Failed && c.Status != "" {
 		return fmt.Errorf("--failed and --status cannot be used together")
 	}
+	if c.Warnings && c.Status != "" {
+		return fmt.Errorf("--warnings and --status cannot be used together")
+	}
+	if c.Failed && c.Warnings {
+		return fmt.Errorf("--failed and --warnings cannot be used together")
+	}
 	if c.Status != "" && !isKnownStatus(dobl.EventStatus(c.Status)) {
 		return fmt.Errorf("unknown status %q", c.Status)
+	}
+	if c.Step != "" && !isValidStepID(c.Step) {
+		return fmt.Errorf("invalid step id %q", c.Step)
 	}
 	if c.Format == formatTable {
 		if c.Events {
@@ -151,6 +166,16 @@ func filterFailedSteps(steps []dobl.Step) []dobl.Step {
 	filtered := make([]dobl.Step, 0, len(steps))
 	for _, step := range steps {
 		if isFailedStatus(step.Status) {
+			filtered = append(filtered, step)
+		}
+	}
+	return filtered
+}
+
+func filterWarningSteps(steps []dobl.Step) []dobl.Step {
+	filtered := make([]dobl.Step, 0, len(steps))
+	for _, step := range steps {
+		if step.Status == dobl.EventStatusWarning || step.WarningCount > 0 {
 			filtered = append(filtered, step)
 		}
 	}
@@ -206,6 +231,12 @@ func normalizeStepID(id string) string {
 		return id
 	}
 	return "#" + id
+}
+
+var stepIDRE = regexp.MustCompile(`^#?\d+$`)
+
+func isValidStepID(id string) bool {
+	return stepIDRE.MatchString(id)
 }
 
 func isKnownStatus(status dobl.EventStatus) bool {

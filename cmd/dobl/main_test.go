@@ -396,6 +396,34 @@ func TestRunSummaryFailedTable(t *testing.T) {
 	}
 }
 
+func TestRunSummaryWarningsJSON(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--warnings"}, strings.NewReader(strings.Join([]string{
+		"#1 DONE 0.1s",
+		"#2 WARNING: cache import failed",
+		"#3 ERROR: failed",
+	}, "\n")), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	var decoded []struct {
+		ID            string `json:"id"`
+		Status        string `json:"status"`
+		WarningDetail string `json:"warning_detail"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &decoded); err != nil {
+		t.Fatalf("invalid json output: %v", err)
+	}
+
+	if len(decoded) != 1 {
+		t.Fatalf("step count = %d, want 1", len(decoded))
+	}
+	if decoded[0].ID != "#2" || decoded[0].Status != "WARNING" || decoded[0].WarningDetail != "cache import failed" {
+		t.Fatalf("unexpected warning step: %+v", decoded[0])
+	}
+}
+
 func TestRunSummaryStatusJSON(t *testing.T) {
 	var out bytes.Buffer
 	err := run([]string{"dobl", "summary", "--status", "WARNING"}, strings.NewReader(strings.Join([]string{
@@ -510,6 +538,23 @@ func TestRunSummaryRejectsFailedAndStatus(t *testing.T) {
 	err := run([]string{"dobl", "summary", "--failed", "--status", "ERROR"}, strings.NewReader("#1 ERROR: failed\n"), &out)
 	if err == nil {
 		t.Fatal("run returned nil error")
+	}
+}
+
+func TestRunSummaryRejectsConflictingStatusFilters(t *testing.T) {
+	tests := [][]string{
+		{"dobl", "summary", "--warnings", "--status", "WARNING"},
+		{"dobl", "summary", "--failed", "--warnings"},
+	}
+
+	for _, args := range tests {
+		t.Run(strings.Join(args, "_"), func(t *testing.T) {
+			var out bytes.Buffer
+			err := run(args, strings.NewReader("#1 WARNING: cache import failed\n"), &out)
+			if err == nil {
+				t.Fatal("run returned nil error")
+			}
+		})
 	}
 }
 
@@ -635,6 +680,17 @@ func TestRunRejectsUnknownStatus(t *testing.T) {
 	err := run([]string{"dobl", "summary", "--status", "SKIPPED"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
 	if err == nil {
 		t.Fatal("run returned nil error")
+	}
+}
+
+func TestRunRejectsMalformedStepID(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--step", "abc"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	if err == nil {
+		t.Fatal("run returned nil error")
+	}
+	if !strings.Contains(err.Error(), `invalid step id "abc"`) {
+		t.Fatalf("error = %q, want invalid step id", err)
 	}
 }
 
