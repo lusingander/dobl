@@ -331,13 +331,13 @@ func encodeJSON(stdout io.Writer, output any, compact bool) error {
 
 func encodeSummaryTable(stdout io.Writer, steps []dobl.Step, wide bool) error {
 	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
-	if _, err := fmt.Fprintln(writer, "ID\tSTATUS\tDURATION\tSTEP\tINSTRUCTION\tNAME\tOUTPUTS\tPROGRESS\tERROR"); err != nil {
+	if _, err := fmt.Fprintln(writer, "ID\tSTATUS\tDURATION\tSTEP\tINSTRUCTION\tNAME\tOUTPUTS\tPROGRESS\tDIAGNOSTIC"); err != nil {
 		return err
 	}
 	for _, step := range steps {
-		errorDetail := step.ErrorDetail
+		diagnostic := stepDiagnostic(step)
 		if !wide {
-			errorDetail = truncateString(errorDetail, tableErrorWidth)
+			diagnostic = truncateString(diagnostic, tableErrorWidth)
 		}
 		if _, err := fmt.Fprintf(
 			writer,
@@ -350,12 +350,19 @@ func encodeSummaryTable(stdout io.Writer, steps []dobl.Step, wide bool) error {
 			step.Name,
 			step.OutputCount,
 			step.ProgressCount,
-			errorDetail,
+			diagnostic,
 		); err != nil {
 			return err
 		}
 	}
 	return writer.Flush()
+}
+
+func stepDiagnostic(step dobl.Step) string {
+	if step.ErrorDetail != "" {
+		return step.ErrorDetail
+	}
+	return step.WarningDetail
 }
 
 func formatStepIndex(step dobl.Step) string {

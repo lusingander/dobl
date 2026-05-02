@@ -126,7 +126,7 @@ Duration values:
 `dobl summary --format table testdata/error_plain.log` emits:
 
 ```text
-ID  STATUS  DURATION  STEP  INSTRUCTION  NAME                                                        OUTPUTS  PROGRESS  ERROR
+ID  STATUS  DURATION  STEP  INSTRUCTION  NAME                                                        OUTPUTS  PROGRESS  DIAGNOSTIC
 #1  DONE    0.0s                         [internal] load build definition from Dockerfile            0        1
 #2  DONE    0.4s                         [internal] load metadata for docker.io/library/alpine:3.20  0        0
 #3  ERROR             1/1   RUN          [1/1] RUN echo before && exit 1                             2        0         process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
@@ -142,7 +142,8 @@ Columns:
 - `NAME`: full parsed step name.
 - `OUTPUTS`: output event count.
 - `PROGRESS`: progress event count.
-- `ERROR`: error detail. Long values are truncated unless `--wide` is used.
+- `DIAGNOSTIC`: error or warning detail. Long values are truncated unless
+  `--wide` is used.
 
 ## Static Viewer
 

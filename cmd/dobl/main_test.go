@@ -349,6 +349,29 @@ func TestRunSummaryTableWideKeepsLongErrors(t *testing.T) {
 	}
 }
 
+func TestRunSummaryTableIncludesWarningDetails(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "summary", "--warnings", "--format", "table"}, strings.NewReader("#1 WARNING: cache import failed\n#2 DONE 0.1s\n"), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	for _, want := range []string{
+		"DIAGNOSTIC",
+		"#1",
+		"WARNING",
+		"cache import failed",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("table output %q does not contain %q", output, want)
+		}
+	}
+	if strings.Contains(output, "#2") {
+		t.Fatalf("table output contains non-warning step: %q", output)
+	}
+}
+
 func TestRunSummaryFailedJSON(t *testing.T) {
 	var out bytes.Buffer
 	err := run([]string{"dobl", "summary", "--failed"}, strings.NewReader(strings.Join([]string{
