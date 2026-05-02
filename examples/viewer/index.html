@@ -403,6 +403,12 @@
       font-weight: 700;
     }
 
+    .timeline-panel {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
     .timeline {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
@@ -412,8 +418,41 @@
 
     .timeline-segment {
       min-height: 22px;
+      border: 0;
+      border-bottom: 4px solid currentColor;
       border-radius: 3px;
       background: var(--other);
+      padding: 0;
+    }
+
+    .timeline-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      background: var(--other);
+    }
+
+    .legend-line {
+      width: 14px;
+      height: 4px;
+      border-radius: 999px;
+      background: currentColor;
     }
 
     .section {
@@ -507,7 +546,7 @@
         margin-top: 14px;
       }
 
-      .timeline {
+      .timeline-panel {
         margin-top: 14px;
       }
 
@@ -787,9 +826,12 @@
     }
 
     function renderTimeline() {
-      const existing = document.querySelector(".timeline");
+      const existing = document.querySelector(".timeline-panel");
       if (existing) existing.remove();
       if (!state.steps.length) return;
+
+      const panel = document.createElement("div");
+      panel.className = "timeline-panel";
 
       const timeline = document.createElement("div");
       timeline.className = "timeline";
@@ -797,14 +839,41 @@
       for (const step of state.steps) {
         const segment = document.createElement("button");
         segment.type = "button";
-        segment.className = "timeline-segment category-" + step.category;
+        segment.className = "timeline-segment category-" + step.category + " status-" + step.status;
         segment.title = step.id + " " + (step.displayName || step.name);
         segment.addEventListener("click", () => {
           selectStep(step.id, { scrollStepIntoView: true });
         });
         timeline.append(segment);
       }
-      document.querySelector("main").insertBefore(timeline, document.querySelector(".workspace"));
+      panel.append(timeline, timelineLegend());
+      document.querySelector("main").insertBefore(panel, document.querySelector(".workspace"));
+    }
+
+    function timelineLegend() {
+      const legend = document.createElement("div");
+      legend.className = "timeline-legend";
+      legend.setAttribute("aria-label", "Timeline legend");
+
+      for (const category of categoryValues) {
+        const item = document.createElement("span");
+        item.className = "legend-item";
+        const swatch = document.createElement("span");
+        swatch.className = "legend-swatch category-" + category;
+        item.append(swatch, document.createTextNode(category));
+        legend.append(item);
+      }
+
+      for (const status of statusValues) {
+        const item = document.createElement("span");
+        item.className = "legend-item status-" + status;
+        const line = document.createElement("span");
+        line.className = "legend-line";
+        item.append(line, document.createTextNode(status));
+        legend.append(item);
+      }
+
+      return legend;
     }
 
     function selectStep(id, options = {}) {
