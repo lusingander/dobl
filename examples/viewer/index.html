@@ -162,6 +162,13 @@
       gap: 8px;
     }
 
+    .mode-button[aria-pressed="true"] {
+      border-color: var(--focus);
+      background: #e6f1fb;
+      color: var(--focus);
+      font-weight: 700;
+    }
+
     #file-input {
       position: absolute;
       inline-size: 1px;
@@ -285,6 +292,44 @@
       margin: 0 0 8px;
       padding: 0;
       text-align: left;
+    }
+
+    .dense .metric {
+      min-height: 58px;
+      padding: 9px 10px;
+    }
+
+    .dense .metric-value {
+      margin-top: 4px;
+      font-size: 20px;
+    }
+
+    .dense .step-card {
+      min-height: 52px;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .dense .step-card-body {
+      padding: 7px 10px 7px 0;
+    }
+
+    .dense .step-meta {
+      margin-top: 4px;
+    }
+
+    .dense .detail {
+      padding: 12px;
+    }
+
+    .dense .detail-grid {
+      gap: 8px;
+      margin-block: 10px;
+    }
+
+    .dense .field {
+      min-height: 54px;
+      padding: 8px;
     }
 
     .step-card[aria-selected="true"] {
@@ -667,6 +712,7 @@
         </div>
       </div>
       <div class="actions">
+        <button class="mode-button" id="dense-button" type="button" aria-pressed="false">Dense</button>
         <label class="file-button" for="file-input">Open JSON</label>
         <input id="file-input" type="file" accept="application/json,.json">
         <button id="clear-button" type="button" disabled>Clear</button>
@@ -742,11 +788,13 @@
       filtered: [],
       selectedID: "",
       sourceName: "",
-      errorMessage: ""
+      errorMessage: "",
+      dense: false
     };
 
     const els = {
       fileInput: document.querySelector("#file-input"),
+      denseButton: document.querySelector("#dense-button"),
       clearButton: document.querySelector("#clear-button"),
       sourceName: document.querySelector("#source-name"),
       searchInput: document.querySelector("#search-input"),
@@ -785,6 +833,10 @@
       loadSummary([], "");
     });
 
+    els.denseButton.addEventListener("click", () => {
+      setDenseMode(!state.dense);
+    });
+
     els.searchInput.addEventListener("input", applyFilters);
     els.statusFilter.addEventListener("change", applyFilters);
     els.categoryFilter.addEventListener("change", applyFilters);
@@ -817,6 +869,12 @@
       renderMetrics();
       renderTimeline();
       applyFilters();
+    }
+
+    function setDenseMode(enabled) {
+      state.dense = enabled;
+      document.body.classList.toggle("dense", state.dense);
+      els.denseButton.setAttribute("aria-pressed", state.dense ? "true" : "false");
     }
 
     function normalizeStep(step, index) {
