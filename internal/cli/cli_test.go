@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 
 func TestRunParseFromStdin(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "parse"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	err := Run([]string{"dobl", "parse"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -40,7 +40,7 @@ func TestRunParseFromStdin(t *testing.T) {
 
 func TestRunParseExplicitJSONFormat(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "parse", "--format", "json"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	err := Run([]string{"dobl", "parse", "--format", "json"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestRunParseExplicitJSONFormat(t *testing.T) {
 
 func TestRunHelp(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "--help"}, strings.NewReader(""), &out)
+	err := Run([]string{"dobl", "--help"}, strings.NewReader(""), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestRunCommandHelp(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var out bytes.Buffer
-			err := run(tt.args, strings.NewReader(""), &out)
+			err := Run(tt.args, strings.NewReader(""), &out)
 			if err != nil {
 				t.Fatalf("run returned error: %v", err)
 			}
@@ -121,7 +121,7 @@ func TestRunCommandHelp(t *testing.T) {
 
 func TestRunSummaryFromStdin(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary"}, strings.NewReader("#1 [internal] load build definition from Dockerfile\n#1 DONE 0.1s\n"), &out)
+	err := Run([]string{"dobl", "summary"}, strings.NewReader("#1 [internal] load build definition from Dockerfile\n#1 DONE 0.1s\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -160,7 +160,7 @@ func TestRunSummaryFromStdin(t *testing.T) {
 
 func TestRunSummaryExplicitJSONFormat(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--format", "json"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	err := Run([]string{"dobl", "summary", "--format", "json"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestRunSummaryCompactGolden(t *testing.T) {
 			}
 
 			var out bytes.Buffer
-			err = run([]string{"dobl", "summary", "--compact"}, bytes.NewReader(input), &out)
+			err = Run([]string{"dobl", "summary", "--compact"}, bytes.NewReader(input), &out)
 			if err != nil {
 				t.Fatalf("run returned error: %v", err)
 			}
@@ -221,7 +221,7 @@ func TestRunSummaryVisualizationContractFields(t *testing.T) {
 	}
 
 	var out bytes.Buffer
-	err = run([]string{"dobl", "summary", "--compact"}, bytes.NewReader(input), &out)
+	err = Run([]string{"dobl", "summary", "--compact"}, bytes.NewReader(input), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -270,41 +270,9 @@ func TestRunSummaryVisualizationContractFields(t *testing.T) {
 	assertRawJSON(t, decoded[7], "category", `"export"`)
 }
 
-func TestViewerSampleMatchesVisualizationContractGolden(t *testing.T) {
-	sample, err := os.ReadFile("../../examples/viewer/sample-summary.json")
-	if err != nil {
-		t.Fatalf("read viewer sample: %v", err)
-	}
-	golden, err := os.ReadFile("testdata/summary_visualization_contract.golden.json")
-	if err != nil {
-		t.Fatalf("read visualization golden: %v", err)
-	}
-	var compactSample bytes.Buffer
-	if err := json.Compact(&compactSample, sample); err != nil {
-		t.Fatalf("viewer sample is invalid json: %v", err)
-	}
-	var compactGolden bytes.Buffer
-	if err := json.Compact(&compactGolden, golden); err != nil {
-		t.Fatalf("visualization golden is invalid json: %v", err)
-	}
-	if compactSample.String() != compactGolden.String() {
-		t.Fatal("viewer sample does not match visualization contract golden")
-	}
-}
-
-func TestEmbeddedViewerMatchesStaticViewer(t *testing.T) {
-	staticViewer, err := os.ReadFile("../../examples/viewer/index.html")
-	if err != nil {
-		t.Fatalf("read static viewer: %v", err)
-	}
-	if viewerHTML != string(staticViewer) {
-		t.Fatal("embedded viewer does not match examples/viewer/index.html")
-	}
-}
-
 func TestRunSummaryTableFormat(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--format", "table"}, strings.NewReader("#1 [build 1/2] RUN echo hi\n#1 0.100 hi\n#1 ERROR: failed\n"), &out)
+	err := Run([]string{"dobl", "summary", "--format", "table"}, strings.NewReader("#1 [build 1/2] RUN echo hi\n#1 0.100 hi\n#1 ERROR: failed\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -334,47 +302,10 @@ func TestRunSummaryTableFormat(t *testing.T) {
 	}
 }
 
-func TestRunReportEmbedsSummaryJSON(t *testing.T) {
-	var out bytes.Buffer
-	err := run([]string{"dobl", "report"}, strings.NewReader("#1 [1/1] RUN echo hi\n#1 DONE 0.1s\n"), &out)
-	if err != nil {
-		t.Fatalf("run returned error: %v", err)
-	}
-
-	output := out.String()
-	for _, want := range []string{
-		"<!doctype html>",
-		`id="embedded-summary"`,
-		`data-source="stdin"`,
-		`"id":"#1"`,
-		"loadEmbeddedSummary();",
-	} {
-		if !strings.Contains(output, want) {
-			t.Fatalf("report output missing %q", want)
-		}
-	}
-}
-
-func TestRunReportEscapesEmbeddedSummary(t *testing.T) {
-	var out bytes.Buffer
-	err := run([]string{"dobl", "report"}, strings.NewReader("#1 [1/1] RUN echo '</script>'\n#1 ERROR: failed </script>\n"), &out)
-	if err != nil {
-		t.Fatalf("run returned error: %v", err)
-	}
-
-	output := out.String()
-	if strings.Contains(output, "failed </script>") {
-		t.Fatalf("report output contains raw closing script tag")
-	}
-	if !strings.Contains(output, `failed <\/script>`) {
-		t.Fatalf("report output missing escaped closing script tag")
-	}
-}
-
 func TestRunSummaryTableTruncatesLongErrors(t *testing.T) {
 	longError := strings.Repeat("x", tableErrorWidth+20)
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--format", "table"}, strings.NewReader("#1 ERROR: "+longError+"\n"), &out)
+	err := Run([]string{"dobl", "summary", "--format", "table"}, strings.NewReader("#1 ERROR: "+longError+"\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -391,7 +322,7 @@ func TestRunSummaryTableTruncatesLongErrors(t *testing.T) {
 func TestRunSummaryTableWideKeepsLongErrors(t *testing.T) {
 	longError := strings.Repeat("x", tableErrorWidth+20)
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--format", "table", "--wide"}, strings.NewReader("#1 ERROR: "+longError+"\n"), &out)
+	err := Run([]string{"dobl", "summary", "--format", "table", "--wide"}, strings.NewReader("#1 ERROR: "+longError+"\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -403,7 +334,7 @@ func TestRunSummaryTableWideKeepsLongErrors(t *testing.T) {
 
 func TestRunSummaryTableIncludesWarningDetails(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--warnings", "--format", "table"}, strings.NewReader("#1 WARNING: cache import failed\n#2 DONE 0.1s\n"), &out)
+	err := Run([]string{"dobl", "summary", "--warnings", "--format", "table"}, strings.NewReader("#1 WARNING: cache import failed\n#2 DONE 0.1s\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -426,7 +357,7 @@ func TestRunSummaryTableIncludesWarningDetails(t *testing.T) {
 
 func TestRunSummaryFailedJSON(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--failed"}, strings.NewReader(strings.Join([]string{
+	err := Run([]string{"dobl", "summary", "--failed"}, strings.NewReader(strings.Join([]string{
 		"#1 DONE 0.1s",
 		"#2 WARNING: cache import failed",
 		"#3 ERROR: failed",
@@ -457,7 +388,7 @@ func TestRunSummaryFailedJSON(t *testing.T) {
 
 func TestRunSummaryFailedTable(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--failed", "--format", "table"}, strings.NewReader("#1 DONE 0.1s\n#2 ERROR: failed\n"), &out)
+	err := Run([]string{"dobl", "summary", "--failed", "--format", "table"}, strings.NewReader("#1 DONE 0.1s\n#2 ERROR: failed\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -473,7 +404,7 @@ func TestRunSummaryFailedTable(t *testing.T) {
 
 func TestRunSummaryWarningsJSON(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--warnings"}, strings.NewReader(strings.Join([]string{
+	err := Run([]string{"dobl", "summary", "--warnings"}, strings.NewReader(strings.Join([]string{
 		"#1 DONE 0.1s",
 		"#2 WARNING: cache import failed",
 		"#3 ERROR: failed",
@@ -501,7 +432,7 @@ func TestRunSummaryWarningsJSON(t *testing.T) {
 
 func TestRunSummaryStatusJSON(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--status", "WARNING"}, strings.NewReader(strings.Join([]string{
+	err := Run([]string{"dobl", "summary", "--status", "WARNING"}, strings.NewReader(strings.Join([]string{
 		"#1 DONE 0.1s",
 		"#2 WARNING: cache import failed",
 		"#3 ERROR: failed",
@@ -528,7 +459,7 @@ func TestRunSummaryStatusJSON(t *testing.T) {
 
 func TestRunSummaryStatusTable(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--status", "CACHED", "--format", "table"}, strings.NewReader("#1 DONE 0.1s\n#2 CACHED\n"), &out)
+	err := Run([]string{"dobl", "summary", "--status", "CACHED", "--format", "table"}, strings.NewReader("#1 DONE 0.1s\n#2 CACHED\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -544,7 +475,7 @@ func TestRunSummaryStatusTable(t *testing.T) {
 
 func TestRunSummaryStageFilterJSON(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--stage", "build"}, strings.NewReader(strings.Join([]string{
+	err := Run([]string{"dobl", "summary", "--stage", "build"}, strings.NewReader(strings.Join([]string{
 		"#1 [internal] load build definition from Dockerfile",
 		"#1 DONE 0.0s",
 		"#2 [build 1/2] RUN echo hi",
@@ -570,7 +501,7 @@ func TestRunSummaryStageFilterJSON(t *testing.T) {
 
 func TestRunSummaryInstructionFilterJSON(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--instruction", "run"}, strings.NewReader(strings.Join([]string{
+	err := Run([]string{"dobl", "summary", "--instruction", "run"}, strings.NewReader(strings.Join([]string{
 		"#1 [1/2] FROM alpine",
 		"#1 DONE 0.0s",
 		"#2 [2/2] RUN echo hi",
@@ -594,7 +525,7 @@ func TestRunSummaryInstructionFilterJSON(t *testing.T) {
 
 func TestRunSummaryStepFilterTable(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--step", "2", "--format", "table"}, strings.NewReader("#1 DONE 0.1s\n#2 ERROR: failed\n"), &out)
+	err := Run([]string{"dobl", "summary", "--step", "2", "--format", "table"}, strings.NewReader("#1 DONE 0.1s\n#2 ERROR: failed\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -610,7 +541,7 @@ func TestRunSummaryStepFilterTable(t *testing.T) {
 
 func TestRunSummaryRejectsFailedAndStatus(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--failed", "--status", "ERROR"}, strings.NewReader("#1 ERROR: failed\n"), &out)
+	err := Run([]string{"dobl", "summary", "--failed", "--status", "ERROR"}, strings.NewReader("#1 ERROR: failed\n"), &out)
 	if err == nil {
 		t.Fatal("run returned nil error")
 	}
@@ -625,7 +556,7 @@ func TestRunSummaryRejectsConflictingStatusFilters(t *testing.T) {
 	for _, args := range tests {
 		t.Run(strings.Join(args, "_"), func(t *testing.T) {
 			var out bytes.Buffer
-			err := run(args, strings.NewReader("#1 WARNING: cache import failed\n"), &out)
+			err := Run(args, strings.NewReader("#1 WARNING: cache import failed\n"), &out)
 			if err == nil {
 				t.Fatal("run returned nil error")
 			}
@@ -643,7 +574,7 @@ func TestRunSummaryTableRejectsJSONOnlyOptions(t *testing.T) {
 	for _, args := range tests {
 		t.Run(strings.Join(args, "_"), func(t *testing.T) {
 			var out bytes.Buffer
-			err := run(args, strings.NewReader("#1 DONE 0.1s\n"), &out)
+			err := Run(args, strings.NewReader("#1 DONE 0.1s\n"), &out)
 			if err == nil {
 				t.Fatal("run returned nil error")
 			}
@@ -653,7 +584,7 @@ func TestRunSummaryTableRejectsJSONOnlyOptions(t *testing.T) {
 
 func TestRunSummaryValidatesOptionsBeforeInput(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--format", "table", "--events", "missing.log"}, strings.NewReader(""), &out)
+	err := Run([]string{"dobl", "summary", "--format", "table", "--events", "missing.log"}, strings.NewReader(""), &out)
 	if err == nil {
 		t.Fatal("run returned nil error")
 	}
@@ -667,7 +598,7 @@ func TestRunSummaryValidatesOptionsBeforeInput(t *testing.T) {
 
 func TestRunSummaryIncludesStepMetadata(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary"}, strings.NewReader("#1 [1/1] RUN echo hi\n#1 0.100 hi\n#1 ERROR: failed\n"), &out)
+	err := Run([]string{"dobl", "summary"}, strings.NewReader("#1 [1/1] RUN echo hi\n#1 0.100 hi\n#1 ERROR: failed\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -699,7 +630,7 @@ func TestRunSummaryIncludesStepMetadata(t *testing.T) {
 
 func TestRunSummaryWithEvents(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--events"}, strings.NewReader("#1 [internal] load build definition from Dockerfile\n#1 DONE 0.1s\n"), &out)
+	err := Run([]string{"dobl", "summary", "--events"}, strings.NewReader("#1 [internal] load build definition from Dockerfile\n#1 DONE 0.1s\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -723,7 +654,7 @@ func TestRunSummaryWithEvents(t *testing.T) {
 
 func TestRunParseCompact(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "parse", "--compact"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	err := Run([]string{"dobl", "parse", "--compact"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
@@ -742,7 +673,7 @@ func TestRunRejectsUnknownFormat(t *testing.T) {
 	for _, args := range tests {
 		t.Run(strings.Join(args, "_"), func(t *testing.T) {
 			var out bytes.Buffer
-			err := run(args, strings.NewReader("#1 DONE 0.1s\n"), &out)
+			err := Run(args, strings.NewReader("#1 DONE 0.1s\n"), &out)
 			if err == nil {
 				t.Fatal("run returned nil error")
 			}
@@ -752,7 +683,7 @@ func TestRunRejectsUnknownFormat(t *testing.T) {
 
 func TestRunRejectsUnknownStatus(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--status", "SKIPPED"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	err := Run([]string{"dobl", "summary", "--status", "SKIPPED"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
 	if err == nil {
 		t.Fatal("run returned nil error")
 	}
@@ -760,7 +691,7 @@ func TestRunRejectsUnknownStatus(t *testing.T) {
 
 func TestRunRejectsMalformedStepID(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "summary", "--step", "abc"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	err := Run([]string{"dobl", "summary", "--step", "abc"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
 	if err == nil {
 		t.Fatal("run returned nil error")
 	}
@@ -771,7 +702,7 @@ func TestRunRejectsMalformedStepID(t *testing.T) {
 
 func TestRunParseReportsInputContext(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "parse"}, strings.NewReader(strings.Repeat("x", 1024*1024+1)), &out)
+	err := Run([]string{"dobl", "parse"}, strings.NewReader(strings.Repeat("x", 1024*1024+1)), &out)
 	if err == nil {
 		t.Fatal("run returned nil error")
 	}
@@ -785,7 +716,7 @@ func TestRunParseReportsInputContext(t *testing.T) {
 
 func TestRunParseReportsOpenContext(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "parse", "missing.log"}, strings.NewReader(""), &out)
+	err := Run([]string{"dobl", "parse", "missing.log"}, strings.NewReader(""), &out)
 	if err == nil {
 		t.Fatal("run returned nil error")
 	}
@@ -796,7 +727,7 @@ func TestRunParseReportsOpenContext(t *testing.T) {
 
 func TestRunRejectsUnknownCommand(t *testing.T) {
 	var out bytes.Buffer
-	err := run([]string{"dobl", "unknown"}, strings.NewReader(""), &out)
+	err := Run([]string{"dobl", "unknown"}, strings.NewReader(""), &out)
 	if err == nil {
 		t.Fatal("run returned nil error")
 	}

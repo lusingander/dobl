@@ -1,0 +1,165 @@
+package cli
+
+import (
+	"fmt"
+
+	"github.com/lusingander/dobl"
+)
+
+const (
+	formatJSON  = "json"
+	formatTable = "table"
+)
+
+type parseCmd struct {
+	Compact bool   `help:"Emit compact JSON."`
+	Format  string `default:"json" enum:"json" help:"Output format."`
+	File    string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
+}
+
+type summaryCmd struct {
+	Compact     bool   `help:"Emit compact JSON."`
+	Events      bool   `help:"Include source events in each step."`
+	Failed      bool   `help:"Only include failed steps."`
+	Warnings    bool   `help:"Only include warning steps."`
+	Format      string `default:"json" enum:"json,table" help:"Output format."`
+	Status      string `placeholder:"STATUS" help:"Only include steps with this status. One of: DONE, CACHED, ERROR, CANCELED, WARNING, PROGRESS."`
+	Stage       string `placeholder:"STAGE" help:"Only include Dockerfile steps from this stage."`
+	Instruction string `placeholder:"INSTRUCTION" help:"Only include Dockerfile steps with this instruction."`
+	Step        string `placeholder:"ID" help:"Only include a specific BuildKit step ID, such as #3 or 3."`
+	Wide        bool   `help:"Do not truncate table error details."`
+	File        string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
+}
+
+type reportCmd struct {
+	File string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
+}
+
+func (c *parseCmd) Help() string {
+	return `Examples:
+  dobl parse build.log
+  docker buildx build --progress=plain . 2>&1 | dobl parse --compact`
+}
+
+func (c *summaryCmd) Help() string {
+	return `Examples:
+  dobl summary build.log
+  dobl summary --format table build.log
+  dobl summary --format table --wide build.log
+  dobl summary --failed --format table build.log
+  dobl summary --warnings --format table build.log
+  dobl summary --status ERROR build.log
+  dobl summary --stage build --instruction RUN build.log
+  dobl summary --step '#3' build.log`
+}
+
+func (c *reportCmd) Help() string {
+	return `Examples:
+  dobl report build.log > report.html
+  docker buildx build --progress=plain . 2>&1 | dobl report > report.html`
+}
+
+func (c *parseCmd) Run(ctx *runContext) error {
+	if c.Format != formatJSON {
+		return fmt.Errorf("parse format %q is not supported", c.Format)
+	}
+
+	log, err := parseInput(c.File, ctx.stdin)
+	if err != nil {
+		return err
+	}
+
+	return encodeJSON(ctx.stdout, log, c.Compact)
+}
+
+func (c *summaryCmd) Run(ctx *runContext) error {
+	if err := c.validate(); err != nil {
+		return err
+	}
+
+	log, err := parseInput(c.File, ctx.stdin)
+	if err != nil {
+		return err
+	}
+	steps := log.Steps()
+	if c.Failed {
+		steps = filterFailedSteps(steps)
+	}
+	if c.Warnings {
+		steps = filterWarningSteps(steps)
+	}
+	if c.Status != "" {
+		status := dobl.EventStatus(c.Status)
+		steps = filterStepsByStatus(steps, status)
+	}
+	if c.Stage != "" {
+		steps = filterStepsByStage(steps, c.Stage)
+	}
+	if c.Instruction != "" {
+		steps = filterStepsByInstruction(steps, c.Instruction)
+	}
+	if c.Step != "" {
+		steps = filterStepsByID(steps, normalizeStepID(c.Step))
+	}
+	if !c.Events {
+		for i := range steps {
+			steps[i].Events = nil
+		}
+	}
+
+	switch c.Format {
+	case formatJSON:
+		return encodeJSON(ctx.stdout, steps, c.Compact)
+	case formatTable:
+		return encodeSummaryTable(ctx.stdout, steps, c.Wide)
+	default:
+		return fmt.Errorf("summary format %q is not supported", c.Format)
+	}
+}
+
+func (c *reportCmd) Run(ctx *runContext) error {
+	log, err := parseInput(c.File, ctx.stdin)
+	if err != nil {
+		return err
+	}
+
+	steps := log.Steps()
+	for i := range steps {
+		steps[i].Events = nil
+	}
+
+	source := c.File
+	if source == "" || source == "-" {
+		source = "stdin"
+	}
+	return encodeHTMLReport(ctx.stdout, steps, source)
+}
+
+func (c *summaryCmd) validate() error {
+	if c.Failed && c.Status != "" {
+		return fmt.Errorf("--failed and --status cannot be used together")
+	}
+	if c.Warnings && c.Status != "" {
+		return fmt.Errorf("--warnings and --status cannot be used together")
+	}
+	if c.Failed && c.Warnings {
+		return fmt.Errorf("--failed and --warnings cannot be used together")
+	}
+	if c.Status != "" && !isKnownStatus(dobl.EventStatus(c.Status)) {
+		return fmt.Errorf("unknown status %q", c.Status)
+	}
+	if c.Step != "" && !isValidStepID(c.Step) {
+		return fmt.Errorf("invalid step id %q", c.Step)
+	}
+	if c.Format == formatTable {
+		if c.Events {
+			return fmt.Errorf("--events is only supported with --format=json")
+		}
+		if c.Compact {
+			return fmt.Errorf("--compact is only supported with --format=json")
+		}
+	} else if c.Wide {
+		return fmt.Errorf("--wide is only supported with --format=table")
+	}
+	return nil
+}
