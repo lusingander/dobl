@@ -663,7 +663,8 @@
       steps: [],
       filtered: [],
       selectedID: "",
-      sourceName: ""
+      sourceName: "",
+      errorMessage: ""
     };
 
     const els = {
@@ -696,7 +697,7 @@
         const text = await file.text();
         loadSummary(JSON.parse(text), file.name);
       } catch (error) {
-        showError(error);
+        showError(error, file.name);
       } finally {
         els.fileInput.value = "";
       }
@@ -722,20 +723,19 @@
         const text = await file.text();
         loadSummary(JSON.parse(text), file.name);
       } catch (error) {
-        showError(error);
+        showError(error, file.name);
       }
     });
 
     function loadSummary(value, sourceName) {
-      if (!Array.isArray(value)) {
-        throw new Error("Expected a summary JSON array.");
-      }
+      validateSummary(value);
 
       state.steps = value.map(normalizeStep).sort((a, b) => a.order - b.order);
       state.selectedID = state.steps[0] ? state.steps[0].id : "";
       state.sourceName = sourceName || "";
+      state.errorMessage = "";
       els.sourceName.textContent = state.sourceName || "No summary loaded";
-      els.clearButton.disabled = state.steps.length === 0;
+      els.clearButton.disabled = state.steps.length === 0 && !state.errorMessage;
       renderMetrics();
       renderTimeline();
       applyFilters();
@@ -804,6 +804,41 @@
 
       renderSteps();
       renderDetail();
+    }
+
+    function validateSummary(value) {
+      if (!Array.isArray(value)) {
+        throw new Error("Expected a summary JSON array.");
+      }
+
+      const required = [
+        "id",
+        "order",
+        "category",
+        "output_count",
+        "progress_count",
+        "warning_count",
+        "unknown_count",
+        "start_line",
+        "end_line"
+      ];
+      for (let index = 0; index < value.length; index += 1) {
+        const step = value[index];
+        if (!step || typeof step !== "object" || Array.isArray(step)) {
+          throw new Error("Summary item " + (index + 1) + " must be an object.");
+        }
+        for (const field of required) {
+          if (!(field in step)) {
+            throw new Error("Summary item " + (index + 1) + " is missing " + field + ".");
+          }
+        }
+        if (typeof step.id !== "string" || !/^#[0-9]+$/.test(step.id)) {
+          throw new Error("Summary item " + (index + 1) + " has an invalid id.");
+        }
+        if (!Number.isFinite(step.order)) {
+          throw new Error("Summary item " + (index + 1) + " has an invalid order.");
+        }
+      }
     }
 
     function renderMetrics() {
@@ -891,7 +926,7 @@
       els.stepList.replaceChildren();
 
       if (!state.steps.length) {
-        els.stepList.append(emptyNode("No summary loaded"));
+        els.stepList.append(emptyNode(state.errorMessage ? "Invalid summary JSON" : "No summary loaded"));
         restoreStepListScroll(previousScrollTop, options);
         return;
       }
@@ -961,7 +996,11 @@
       els.detailPanel.replaceChildren();
       const step = state.steps.find((item) => item.id === state.selectedID);
       if (!step) {
-        els.detailPanel.append(emptyNode(state.steps.length ? "No step selected" : "No summary loaded"));
+        if (state.errorMessage) {
+          els.detailPanel.append(section("Load Error", diagnostic(state.errorMessage, "error")));
+        } else {
+          els.detailPanel.append(emptyNode(state.steps.length ? "No step selected" : "No summary loaded"));
+        }
         return;
       }
 
@@ -1070,18 +1109,18 @@
       return node;
     }
 
-    function showError(error) {
+    function showError(error, sourceName) {
       state.steps = [];
       state.filtered = [];
       state.selectedID = "";
-      state.sourceName = "";
-      els.clearButton.disabled = true;
-      els.sourceName.textContent = error.message || "Invalid summary JSON";
+      state.sourceName = sourceName || "";
+      state.errorMessage = error.message || "Invalid summary JSON";
+      els.clearButton.disabled = false;
+      els.sourceName.textContent = state.sourceName ? state.sourceName + ": invalid summary JSON" : "Invalid summary JSON";
       renderMetrics();
       renderTimeline();
       renderSteps();
-      els.detailPanel.replaceChildren();
-      els.detailPanel.append(emptyNode("Invalid summary JSON"));
+      renderDetail();
     }
 
     loadSummary([], "");
