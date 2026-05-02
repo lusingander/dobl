@@ -94,6 +94,11 @@ func TestRunCommandHelp(t *testing.T) {
 			args: []string{"dobl", "summary", "--help"},
 			want: []string{"Usage: dobl summary", "dobl summary --format table build.log", "--status", "ERROR"},
 		},
+		{
+			name: "report",
+			args: []string{"dobl", "report", "--help"},
+			want: []string{"Usage: dobl report", "dobl report build.log > report.html"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -287,6 +292,16 @@ func TestViewerSampleMatchesVisualizationContractGolden(t *testing.T) {
 	}
 }
 
+func TestEmbeddedViewerMatchesStaticViewer(t *testing.T) {
+	staticViewer, err := os.ReadFile("../../examples/viewer/index.html")
+	if err != nil {
+		t.Fatalf("read static viewer: %v", err)
+	}
+	if viewerHTML != string(staticViewer) {
+		t.Fatal("embedded viewer does not match examples/viewer/index.html")
+	}
+}
+
 func TestRunSummaryTableFormat(t *testing.T) {
 	var out bytes.Buffer
 	err := run([]string{"dobl", "summary", "--format", "table"}, strings.NewReader("#1 [build 1/2] RUN echo hi\n#1 0.100 hi\n#1 ERROR: failed\n"), &out)
@@ -316,6 +331,43 @@ func TestRunSummaryTableFormat(t *testing.T) {
 	}
 	if strings.Contains(output, "{") || strings.Contains(output, "}") {
 		t.Fatalf("table output looks like json: %q", output)
+	}
+}
+
+func TestRunReportEmbedsSummaryJSON(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "report"}, strings.NewReader("#1 [1/1] RUN echo hi\n#1 DONE 0.1s\n"), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	for _, want := range []string{
+		"<!doctype html>",
+		`id="embedded-summary"`,
+		`data-source="stdin"`,
+		`"id":"#1"`,
+		"loadEmbeddedSummary();",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("report output missing %q", want)
+		}
+	}
+}
+
+func TestRunReportEscapesEmbeddedSummary(t *testing.T) {
+	var out bytes.Buffer
+	err := run([]string{"dobl", "report"}, strings.NewReader("#1 [1/1] RUN echo '</script>'\n#1 ERROR: failed </script>\n"), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	if strings.Contains(output, "failed </script>") {
+		t.Fatalf("report output contains raw closing script tag")
+	}
+	if !strings.Contains(output, `failed <\/script>`) {
+		t.Fatalf("report output missing escaped closing script tag")
 	}
 }
 

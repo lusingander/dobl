@@ -44,7 +44,7 @@ Fixtures under `testdata/` cover:
 - Very long single input lines can exceed the scanner limit and return an
   error.
 - `--progress=rawjson` is not implemented.
-- Terminal, HTML, or other visualization output is not implemented.
+- Terminal visualization output is not implemented.
 
 ## Development Notes
 

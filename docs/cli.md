@@ -1,9 +1,10 @@
 # CLI Reference
 
-Dobl has two commands:
+Dobl has three commands:
 
 - `dobl parse [file]`
 - `dobl summary [file]`
+- `dobl report [file]`
 
 When `file` is omitted or set to `-`, input is read from stdin.
 
@@ -88,6 +89,25 @@ Flags:
   - Do not truncate table error details. Only supported with `--format table`.
 - `-h`, `--help`
   - Show command help.
+
+## `dobl report`
+
+Generate a self-contained HTML summary report.
+
+```sh
+dobl report [file]
+```
+
+Examples:
+
+```sh
+dobl report build.log > report.html
+docker buildx build --progress=plain . 2>&1 | dobl report > report.html
+```
+
+The report embeds the same step summary JSON used by `dobl summary --format
+json` into the static viewer UI. It can be opened directly in a browser and
+does not require a server.
 
 ## Validation
 

@@ -35,6 +35,12 @@ Show a human-readable table:
 dobl summary --format table build.log
 ```
 
+Generate a self-contained HTML report:
+
+```sh
+dobl report build.log > report.html
+```
+
 Show only failed steps:
 
 ```sh
@@ -83,8 +89,9 @@ Implemented:
 - event JSON output
 - step summary JSON output
 - step summary table output
-- summary filters for status, failure, stage, instruction, and step ID
+- summary filters for status, failure, warning, stage, instruction, and step ID
 - static summary JSON viewer
+- self-contained HTML report output
 - normalization for common ANSI, carriage-return, timestamp, and CI log-prefix
   artifacts
 
@@ -93,7 +100,6 @@ Not implemented:
 - streaming parsing
 - `--progress=rawjson`
 - terminal visualization
-- CLI-native HTML report output
 
 ## License
 

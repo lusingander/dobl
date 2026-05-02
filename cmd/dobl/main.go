@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"os"
 	"regexp"
@@ -30,6 +32,7 @@ func main() {
 type cli struct {
 	Parse   parseCmd   `cmd:"" help:"Parse a plain build log into event JSON."`
 	Summary summaryCmd `cmd:"" help:"Summarize a plain build log by BuildKit step."`
+	Report  reportCmd  `cmd:"" help:"Generate a self-contained HTML summary report."`
 }
 
 type parseCmd struct {
@@ -52,6 +55,10 @@ type summaryCmd struct {
 	File        string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
 }
 
+type reportCmd struct {
+	File string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
+}
+
 func (c *parseCmd) Help() string {
 	return `Examples:
   dobl parse build.log
@@ -68,6 +75,12 @@ func (c *summaryCmd) Help() string {
   dobl summary --status ERROR build.log
   dobl summary --stage build --instruction RUN build.log
   dobl summary --step '#3' build.log`
+}
+
+func (c *reportCmd) Help() string {
+	return `Examples:
+  dobl report build.log > report.html
+  docker buildx build --progress=plain . 2>&1 | dobl report > report.html`
 }
 
 type runContext struct {
@@ -131,6 +144,24 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 	default:
 		return fmt.Errorf("summary format %q is not supported", c.Format)
 	}
+}
+
+func (c *reportCmd) Run(ctx *runContext) error {
+	log, err := parseInput(c.File, ctx.stdin)
+	if err != nil {
+		return err
+	}
+
+	steps := log.Steps()
+	for i := range steps {
+		steps[i].Events = nil
+	}
+
+	source := c.File
+	if source == "" || source == "-" {
+		source = "stdin"
+	}
+	return encodeHTMLReport(ctx.stdout, steps, source)
 }
 
 func (c *summaryCmd) validate() error {
@@ -327,6 +358,28 @@ func encodeJSON(stdout io.Writer, output any, compact bool) error {
 		encoder.SetIndent("", "  ")
 	}
 	return encoder.Encode(output)
+}
+
+func encodeHTMLReport(stdout io.Writer, steps []dobl.Step, source string) error {
+	var summary bytes.Buffer
+	encoder := json.NewEncoder(&summary)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(steps); err != nil {
+		return err
+	}
+
+	payload := fmt.Sprintf(
+		`<script id="embedded-summary" type="application/json" data-source="%s">%s</script>`,
+		html.EscapeString(source),
+		escapeClosingScriptTag(strings.TrimSpace(summary.String())),
+	)
+	report := strings.Replace(viewerHTML, "</body>", payload+"\n</body>", 1)
+	_, err := io.WriteString(stdout, report)
+	return err
+}
+
+func escapeClosingScriptTag(value string) string {
+	return strings.ReplaceAll(value, "</script", "<\\/script")
 }
 
 func encodeSummaryTable(stdout io.Writer, steps []dobl.Step, wide bool) error {

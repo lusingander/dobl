@@ -156,6 +156,12 @@ dobl summary --compact build.log > summary.json
 
 Open `examples/viewer/index.html` in a browser and load `summary.json`.
 
+## HTML Report
+
+`dobl report build.log > report.html` emits a self-contained HTML report. The
+report embeds summary JSON into the same static viewer UI and can be opened
+directly in a browser without a server.
+
 ## Category Rules
 
 Summary `category` values are assigned from the parsed step name:
