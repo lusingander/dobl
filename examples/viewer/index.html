@@ -344,12 +344,24 @@
     .status-WARNING { color: var(--warning); }
     .status-PROGRESS { color: var(--progress); }
 
-    .category-dockerfile { background: var(--dockerfile); }
-    .category-internal { background: var(--internal); }
-    .category-export { background: var(--export); }
-    .category-cache { background: var(--cache); }
-    .category-provenance { background: var(--provenance); }
-    .category-other { background: var(--other); }
+    .category-dockerfile,
+    .timeline-segment.category-dockerfile,
+    .legend-swatch.category-dockerfile { background: var(--dockerfile); }
+    .category-internal,
+    .timeline-segment.category-internal,
+    .legend-swatch.category-internal { background: var(--internal); }
+    .category-export,
+    .timeline-segment.category-export,
+    .legend-swatch.category-export { background: var(--export); }
+    .category-cache,
+    .timeline-segment.category-cache,
+    .legend-swatch.category-cache { background: var(--cache); }
+    .category-provenance,
+    .timeline-segment.category-provenance,
+    .legend-swatch.category-provenance { background: var(--provenance); }
+    .category-other,
+    .timeline-segment.category-other,
+    .legend-swatch.category-other { background: var(--other); }
 
     .detail {
       height: 100%;
