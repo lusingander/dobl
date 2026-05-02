@@ -256,7 +256,7 @@
 
     .filters {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 132px 132px auto;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
       gap: 8px;
       padding: 10px 12px;
       border-bottom: 1px solid var(--line);
@@ -278,6 +278,7 @@
     }
 
     .search-filter {
+      grid-column: 1 / -1;
       min-width: 160px;
     }
 
@@ -702,16 +703,6 @@
       .steps-panel,
       .detail {
         height: auto;
-      }
-    }
-
-    @media (max-width: 1180px) and (min-width: 981px) {
-      .filters {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .search-filter {
-        grid-column: 1 / -1;
       }
     }
 
