@@ -508,6 +508,17 @@
       content: "";
     }
 
+    .timeline-segment[aria-current="step"] {
+      box-shadow: 0 0 0 2px var(--focus);
+      outline: 2px solid #fff;
+      outline-offset: -4px;
+      z-index: 1;
+    }
+
+    .timeline-segment[aria-current="step"]::after {
+      height: 6px;
+    }
+
     .timeline-segment.category-dockerfile { background: var(--dockerfile-tint); }
     .timeline-segment.category-internal { background: var(--internal-tint); }
     .timeline-segment.category-export { background: var(--export-tint); }
