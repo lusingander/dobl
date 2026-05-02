@@ -256,7 +256,7 @@
 
     .filters {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 132px 132px;
+      grid-template-columns: minmax(0, 1fr) 132px 132px auto;
       gap: 8px;
       padding: 10px 12px;
       border-bottom: 1px solid var(--line);
@@ -271,6 +271,10 @@
       background: #fff;
       color: var(--text);
       padding: 0 10px;
+    }
+
+    .clear-filters-button {
+      padding-inline: 10px;
     }
 
     .step-list {
@@ -774,6 +778,7 @@
             <option value="provenance">provenance</option>
             <option value="other">other</option>
           </select>
+          <button class="clear-filters-button" id="clear-filters-button" type="button" disabled>Clear Filters</button>
         </div>
         <div class="step-list" id="step-list"></div>
       </div>
@@ -800,6 +805,7 @@
       searchInput: document.querySelector("#search-input"),
       statusFilter: document.querySelector("#status-filter"),
       categoryFilter: document.querySelector("#category-filter"),
+      clearFiltersButton: document.querySelector("#clear-filters-button"),
       visibleCount: document.querySelector("#visible-count"),
       stepList: document.querySelector("#step-list"),
       detailPanel: document.querySelector("#detail-panel"),
@@ -840,6 +846,7 @@
     els.searchInput.addEventListener("input", applyFilters);
     els.statusFilter.addEventListener("change", applyFilters);
     els.categoryFilter.addEventListener("change", applyFilters);
+    els.clearFiltersButton.addEventListener("click", clearFilters);
 
     window.addEventListener("dragover", (event) => {
       event.preventDefault();
@@ -938,8 +945,34 @@
         state.selectedID = state.filtered[0] ? state.filtered[0].id : "";
       }
 
+      els.clearFiltersButton.disabled = !hasActiveFilters();
       renderSteps();
       renderDetail();
+    }
+
+    function hasActiveFilters() {
+      return Boolean(
+        els.searchInput.value.trim() ||
+        els.statusFilter.value ||
+        els.categoryFilter.value
+      );
+    }
+
+    function filterSummaryText() {
+      const parts = [];
+      const query = els.searchInput.value.trim();
+      if (query) parts.push('search "' + query + '"');
+      if (els.statusFilter.value) parts.push("status " + els.statusFilter.value);
+      if (els.categoryFilter.value) parts.push("category " + els.categoryFilter.value);
+      return parts.join(", ");
+    }
+
+    function clearFilters() {
+      els.searchInput.value = "";
+      els.statusFilter.value = "";
+      els.categoryFilter.value = "";
+      applyFilters();
+      els.searchInput.focus();
     }
 
     function validateSummary(value) {
@@ -1200,7 +1233,8 @@
         return;
       }
       if (!state.filtered.length) {
-        els.stepList.append(emptyNode("No matching steps"));
+        const summary = filterSummaryText();
+        els.stepList.append(emptyNode(summary ? "No steps match " + summary : "No matching steps"));
         restoreStepListScroll(previousScrollTop, options);
         return;
       }
