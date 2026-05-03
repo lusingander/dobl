@@ -98,6 +98,7 @@ func (m Model) listView(width int, height int) string {
 		}
 		line := fmt.Sprintf("%s%-4s %-8s %-8s %s", prefix, step.ID, statusText(step.Status), stepLabel(step), step.DisplayName)
 		if i == m.selected {
+			line = trimLine(line, width)
 			line = selectedStyle.Render(line)
 		}
 		lines = append(lines, line)

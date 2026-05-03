@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/lusingander/dobl"
 )
 
@@ -190,6 +191,22 @@ func TestViewHandlesEmptyAndNarrowScreens(t *testing.T) {
 	for _, want := range []string{"Dobl TUI", "Steps", "(none)", "Details"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("view %q does not contain %q", view, want)
+		}
+	}
+}
+
+func TestSelectedListLineTrimsBeforeStyling(t *testing.T) {
+	steps := sampleSteps()
+	steps[0].DisplayName = strings.Repeat("long-name-", 20)
+	model := NewModel(steps, "test.log")
+
+	view := model.listView(24, 4)
+	for _, line := range strings.Split(view, "\n") {
+		if got := lipgloss.Width(line); got > 24 {
+			t.Fatalf("line width = %d, want <= 24: %q", got, line)
+		}
+		if strings.Contains(line, "> ") && strings.Contains(line, "long-name-long-name") {
+			t.Fatalf("selected line was not trimmed before styling: %q", line)
 		}
 	}
 }
