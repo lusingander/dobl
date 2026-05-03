@@ -147,4 +147,6 @@ Invalid flag combinations are rejected before reading input:
 - `--failed` and `--warnings` cannot be used together.
 - `--events` is only supported with `--format json`.
 - `--compact` is only supported with `--format json`.
-- `--wide` is only supported with `--format table`.
+- `--top` is only supported with `--format text`.
+- `--details` is only supported with `--format text`.
+- `--wide` is only supported with `--format table` or `--format text`.
