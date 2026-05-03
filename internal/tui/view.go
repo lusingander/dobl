@@ -159,7 +159,7 @@ func detailLines(step dobl.Step) []string {
 }
 
 func (m Model) helpView(width int) string {
-	mode := "j/k move  pgup/pgdn detail  f filter  / search  esc clear  q quit"
+	mode := "j/k move  n/N problem  pgup/pgdn detail  f filter  p problems  r reset  / search  q quit"
 	if m.searching {
 		mode = "type to search  enter apply  esc close  ctrl+c quit"
 	}

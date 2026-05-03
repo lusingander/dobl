@@ -79,6 +79,30 @@ func isProblemStep(step dobl.Step) bool {
 		step.WarningDetail != ""
 }
 
+func nextProblemIndex(steps []dobl.Step, selected int, direction int) int {
+	if len(steps) == 0 || direction == 0 {
+		return -1
+	}
+	if selected < 0 {
+		selected = 0
+	}
+	if selected >= len(steps) {
+		selected = len(steps) - 1
+	}
+
+	for offset := 1; offset <= len(steps); offset++ {
+		index := selected + direction*offset
+		for index < 0 {
+			index += len(steps)
+		}
+		index = index % len(steps)
+		if isProblemStep(steps[index]) {
+			return index
+		}
+	}
+	return -1
+}
+
 func matchesSearch(step dobl.Step, search string) bool {
 	query := strings.ToLower(strings.TrimSpace(search))
 	if query == "" {

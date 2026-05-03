@@ -61,6 +61,23 @@ func TestParseFilterMode(t *testing.T) {
 	}
 }
 
+func TestNextProblemIndexWrapsThroughVisibleSteps(t *testing.T) {
+	steps := sampleSteps()
+
+	if got := nextProblemIndex(steps, 0, 1); got != 2 {
+		t.Fatalf("next problem index = %d, want 2", got)
+	}
+	if got := nextProblemIndex(steps, 2, 1); got != 3 {
+		t.Fatalf("next problem index = %d, want 3", got)
+	}
+	if got := nextProblemIndex(steps, 3, 1); got != 2 {
+		t.Fatalf("next problem index = %d, want 2 after wrap", got)
+	}
+	if got := nextProblemIndex(steps, 2, -1); got != 3 {
+		t.Fatalf("previous problem index = %d, want 3 after wrap", got)
+	}
+}
+
 func TestSearchMatchesStepFieldsAndOutputTail(t *testing.T) {
 	steps := sampleSteps()
 
@@ -118,6 +135,44 @@ func TestUpdateFilterCyclePreservesValidSelection(t *testing.T) {
 	assertStepIDs(t, model.visible, []string{"#3"})
 	if model.selected != 0 {
 		t.Fatalf("selected = %d, want 0", model.selected)
+	}
+}
+
+func TestUpdateProblemNavigationAndReset(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+
+	model = updateModel(t, model, keyRunes("n"))
+	if model.selected != 2 {
+		t.Fatalf("selected = %d, want first problem", model.selected)
+	}
+
+	model = updateModel(t, model, keyRunes("N"))
+	if model.selected != 3 {
+		t.Fatalf("selected = %d, want previous problem after wrap", model.selected)
+	}
+
+	model = updateModel(t, model, keyRunes("p"))
+	if model.filter != FilterProblems {
+		t.Fatalf("filter = %s, want problems", model.filter)
+	}
+	assertStepIDs(t, model.visible, []string{"#3", "#4"})
+
+	model.search = "run"
+	model.refreshVisible()
+	model = updateModel(t, model, keyRunes("r"))
+	if model.filter != FilterAll || model.search != "" || model.searching {
+		t.Fatalf("filter/search = %s/%q/%v, want reset", model.filter, model.search, model.searching)
+	}
+	assertStepIDs(t, model.visible, []string{"#1", "#2", "#3", "#4"})
+}
+
+func TestNextProblemIndexReturnsMinusOneWhenNoProblems(t *testing.T) {
+	steps := []dobl.Step{
+		{ID: "#1", Status: dobl.EventStatusDone},
+		{ID: "#2", Status: dobl.EventStatusCached},
+	}
+	if got := nextProblemIndex(steps, 0, 1); got != -1 {
+		t.Fatalf("next problem index = %d, want -1", got)
 	}
 }
 

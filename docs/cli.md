@@ -172,8 +172,14 @@ Keyboard controls:
   - Jump to the first or last visible step.
 - `pageup`, `pagedown`, `ctrl+u`, `ctrl+d`
   - Scroll the selected step detail panel.
+- `n`, `N`
+  - Move to the next or previous visible problem step.
 - `f`
   - Cycle filters: all, problems, warnings, failed.
+- `p`
+  - Switch directly to the problems filter.
+- `r`
+  - Reset the filter and search query.
 - `/`
   - Search steps by ID, status, category, instruction, name, diagnostics, or
     output tail.

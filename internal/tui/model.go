@@ -107,8 +107,20 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.scrollDetail(5)
 	case "pgup", "ctrl+u":
 		m.scrollDetail(-5)
+	case "n":
+		m.moveProblem(1)
+	case "N":
+		m.moveProblem(-1)
 	case "f":
 		m.filter = nextFilter(m.filter)
+		m.refreshVisible()
+	case "p":
+		m.filter = FilterProblems
+		m.refreshVisible()
+	case "r":
+		m.filter = FilterAll
+		m.search = ""
+		m.searching = false
 		m.refreshVisible()
 	case "/":
 		m.searching = true
@@ -184,4 +196,13 @@ func (m *Model) scrollDetail(delta int) {
 	if m.detailTop < 0 {
 		m.detailTop = 0
 	}
+}
+
+func (m *Model) moveProblem(direction int) {
+	next := nextProblemIndex(m.visible, m.selected, direction)
+	if next == -1 {
+		return
+	}
+	m.selected = next
+	m.detailTop = 0
 }
