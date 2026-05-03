@@ -1,0 +1,88 @@
+version: '3'
+
+vars:
+  GOCACHE: '{{.GOCACHE | default "/tmp/dobl-go-build"}}'
+
+tasks:
+  default:
+    desc: List available tasks.
+    cmds:
+      - task --list
+
+  build:
+    desc: Build all Go packages.
+    cmds:
+      - GOCACHE={{.GOCACHE}} go build ./...
+
+  test:
+    desc: Run Go tests.
+    cmds:
+      - GOCACHE={{.GOCACHE}} go test ./...
+
+  vet:
+    desc: Run go vet.
+    cmds:
+      - GOCACHE={{.GOCACHE}} go vet ./...
+
+  fmt:
+    desc: Format Go files.
+    cmds:
+      - gofmt -w .
+
+  fmt:check:
+    desc: Check Go formatting.
+    cmds:
+      - test -z "$(gofmt -l .)"
+
+  generate:
+    desc: Regenerate checked-in generated assets.
+    cmds:
+      - GOCACHE={{.GOCACHE}} go generate ./internal/cli
+
+  generate:check:
+    desc: Check generated assets are up to date.
+    cmds:
+      - task: generate
+      - git diff --exit-code -- examples/viewer/index.html
+
+  json:check:
+    desc: Check checked-in JSON files parse.
+    cmds:
+      - node -e 'const fs = require("fs"); for (const file of ["docs/summary.schema.json", "examples/viewer/sample-summary.json"]) JSON.parse(fs.readFileSync(file, "utf8"));'
+
+  viewer:check:
+    desc: Check embedded viewer JavaScript syntax.
+    cmds:
+      - sed -n '/<script>/,/<\/script>/p' internal/cli/viewer.html | sed '1d;$d' | node --check
+
+  lint:
+    desc: Run lint and static checks.
+    cmds:
+      - task: fmt:check
+      - task: vet
+      - task: json:check
+      - task: viewer:check
+
+  npm:install:
+    desc: Install Node dependencies from the lockfile.
+    cmds:
+      - npm ci
+
+  browser:install:
+    desc: Install Playwright browser binaries.
+    cmds:
+      - npm run install:browser
+
+  browser:test:
+    desc: Run Playwright browser regression tests.
+    cmds:
+      - npm run test:browser
+
+  ci:
+    desc: Run the checks used by CI.
+    cmds:
+      - task: generate:check
+      - task: build
+      - task: lint
+      - task: test
+      - task: browser:test

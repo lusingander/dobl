@@ -74,6 +74,33 @@ visualizations. See [Output formats](docs/output.md) and the
 
 A static summary viewer is available at [examples/viewer](examples/viewer).
 
+## Development
+
+Common development commands are available through
+[Task](https://taskfile.dev/):
+
+```sh
+task build
+task lint
+task test
+task browser:test
+task ci
+```
+
+Install Node dependencies before running browser checks locally:
+
+```sh
+task npm:install
+task browser:install
+```
+
+Regenerate the checked-in static viewer after editing
+`internal/cli/viewer.html`:
+
+```sh
+task generate
+```
+
 ## Documentation
 
 - [CLI reference](docs/cli.md)
