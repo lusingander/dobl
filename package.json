@@ -1,0 +1,11 @@
+{
+  "name": "dobl",
+  "private": true,
+  "scripts": {
+    "install:browser": "playwright install chromium",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

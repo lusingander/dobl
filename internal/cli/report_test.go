@@ -25,6 +25,12 @@ func TestRunReportEmbedsSummaryJSON(t *testing.T) {
 			t.Fatalf("report output missing %q", want)
 		}
 	}
+
+	embeddedIndex := strings.Index(output, `id="embedded-summary"`)
+	loaderIndex := strings.Index(output, "loadEmbeddedSummary();")
+	if embeddedIndex < 0 || loaderIndex < 0 || embeddedIndex > loaderIndex {
+		t.Fatal("embedded summary must appear before viewer initialization")
+	}
 }
 
 func TestRunReportEscapesEmbeddedSummary(t *testing.T) {

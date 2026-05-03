@@ -35,7 +35,7 @@ func encodeHTMLReport(stdout io.Writer, steps []dobl.Step, source string) error 
 		html.EscapeString(source),
 		escapeClosingScriptTag(strings.TrimSpace(summary.String())),
 	)
-	report := strings.Replace(viewerHTML, "</body>", payload+"\n</body>", 1)
+	report := strings.Replace(viewerHTML, "  <script>\n", payload+"\n  <script>\n", 1)
 	_, err := io.WriteString(stdout, report)
 	return err
 }
