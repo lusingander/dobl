@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"bytes"
+	"os"
 	"strings"
 	"testing"
 
@@ -217,6 +219,36 @@ func TestUpdateDetailScrollResetsWhenSelectionChanges(t *testing.T) {
 	model = updateModel(t, model, keyRunes("f"))
 	if model.detailTop != 0 {
 		t.Fatalf("detailTop = %d, want 0 after filter", model.detailTop)
+	}
+}
+
+func TestValidateTerminalOutputAllowsCustomWriter(t *testing.T) {
+	if err := validateTerminalOutput(&bytes.Buffer{}); err != nil {
+		t.Fatalf("validate terminal output returned error for custom writer: %v", err)
+	}
+}
+
+func TestValidateTerminalOutputRejectsDumbTerminal(t *testing.T) {
+	t.Setenv("TERM", "dumb")
+	if err := validateTerminalOutput(&bytes.Buffer{}); err == nil {
+		t.Fatalf("validate terminal output returned nil error for TERM=dumb")
+	}
+}
+
+func TestValidateTerminalOutputRejectsNonTerminalFile(t *testing.T) {
+	t.Setenv("TERM", "xterm")
+	file, err := os.CreateTemp(t.TempDir(), "output")
+	if err != nil {
+		t.Fatalf("create temp output: %v", err)
+	}
+	defer file.Close()
+
+	err = validateTerminalOutput(file)
+	if err == nil {
+		t.Fatalf("validate terminal output returned nil error for non-terminal file")
+	}
+	if !strings.Contains(err.Error(), "requires terminal output") {
+		t.Fatalf("error = %q", err)
 	}
 }
 

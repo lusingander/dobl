@@ -1,10 +1,13 @@
 package tui
 
 import (
+	"fmt"
 	"io"
+	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/lusingander/dobl"
+	"github.com/mattn/go-isatty"
 )
 
 const (
@@ -45,6 +48,10 @@ func NewModel(steps []dobl.Step, source string) Model {
 }
 
 func Run(steps []dobl.Step, options Options) error {
+	if err := validateTerminalOutput(options.Output); err != nil {
+		return err
+	}
+
 	source := options.Source
 	if source == "" {
 		source = "stdin"
@@ -64,6 +71,24 @@ func Run(steps []dobl.Step, options Options) error {
 
 	_, err := tea.NewProgram(model, programOptions...).Run()
 	return err
+}
+
+func validateTerminalOutput(output io.Writer) error {
+	if os.Getenv("TERM") == "dumb" {
+		return fmt.Errorf("tui requires an interactive terminal; TERM=dumb is not supported")
+	}
+
+	if output == nil {
+		output = os.Stdout
+	}
+	file, ok := output.(*os.File)
+	if !ok {
+		return nil
+	}
+	if isatty.IsTerminal(file.Fd()) {
+		return nil
+	}
+	return fmt.Errorf("tui requires terminal output; redirect summary or report output instead")
 }
 
 func (m Model) Init() tea.Cmd {
