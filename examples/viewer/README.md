@@ -1,7 +1,14 @@
 # Dobl Summary Viewer
 
-`index.html` is a static viewer for `dobl summary --format json` output. It has
-no build step and no external runtime dependencies.
+`index.html` is a generated static viewer for `dobl summary --format json`
+output. It has no build step and no external runtime dependencies.
+
+The canonical viewer source is `internal/cli/viewer.html`, which is embedded by
+`dobl report`. Regenerate this copy after editing the canonical viewer:
+
+```sh
+go generate ./internal/cli
+```
 
 ![Dobl Summary Viewer screenshot](screenshot.png)
 

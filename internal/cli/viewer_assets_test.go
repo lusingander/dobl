@@ -29,12 +29,12 @@ func TestViewerSampleMatchesVisualizationContractGolden(t *testing.T) {
 	}
 }
 
-func TestEmbeddedViewerMatchesStaticViewer(t *testing.T) {
+func TestStaticViewerMatchesEmbeddedViewer(t *testing.T) {
 	staticViewer, err := os.ReadFile("../../examples/viewer/index.html")
 	if err != nil {
 		t.Fatalf("read static viewer: %v", err)
 	}
 	if viewerHTML != string(staticViewer) {
-		t.Fatal("embedded viewer does not match examples/viewer/index.html")
+		t.Fatal("examples/viewer/index.html does not match canonical internal/cli/viewer.html; run go generate ./internal/cli")
 	}
 }
