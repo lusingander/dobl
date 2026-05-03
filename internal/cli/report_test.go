@@ -2,6 +2,8 @@ package cli
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -18,6 +20,7 @@ func TestRunReportEmbedsSummaryJSON(t *testing.T) {
 		"<!doctype html>",
 		`id="embedded-summary"`,
 		`data-source="stdin"`,
+		`data-title=""`,
 		`"id":"#1"`,
 		"loadEmbeddedSummary();",
 	} {
@@ -30,6 +33,39 @@ func TestRunReportEmbedsSummaryJSON(t *testing.T) {
 	loaderIndex := strings.Index(output, "loadEmbeddedSummary();")
 	if embeddedIndex < 0 || loaderIndex < 0 || embeddedIndex > loaderIndex {
 		t.Fatal("embedded summary must appear before viewer initialization")
+	}
+}
+
+func TestRunReportWritesOutputFile(t *testing.T) {
+	outputPath := filepath.Join(t.TempDir(), "report.html")
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "report", "--output", outputPath}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", out.String())
+	}
+
+	report, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatalf("read output report: %v", err)
+	}
+	if !strings.Contains(string(report), `id="embedded-summary"`) || !strings.Contains(string(report), `"id":"#1"`) {
+		t.Fatalf("output report missing embedded summary: %s", report)
+	}
+}
+
+func TestRunReportEmbedsTitle(t *testing.T) {
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "report", "--title", `CI "build"`}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	if !strings.Contains(output, `data-title="CI &#34;build&#34;"`) {
+		t.Fatalf("report output missing escaped title: %q", output)
 	}
 }
 

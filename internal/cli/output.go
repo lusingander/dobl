@@ -36,7 +36,7 @@ func encodeJSON(stdout io.Writer, output any, compact bool) error {
 	return encoder.Encode(output)
 }
 
-func encodeHTMLReport(stdout io.Writer, steps []dobl.Step, source string) error {
+func encodeHTMLReport(stdout io.Writer, steps []dobl.Step, source string, title string) error {
 	var summary bytes.Buffer
 	encoder := json.NewEncoder(&summary)
 	encoder.SetEscapeHTML(false)
@@ -45,8 +45,9 @@ func encodeHTMLReport(stdout io.Writer, steps []dobl.Step, source string) error 
 	}
 
 	payload := fmt.Sprintf(
-		`<script id="embedded-summary" type="application/json" data-source="%s">%s</script>`,
+		`<script id="embedded-summary" type="application/json" data-source="%s" data-title="%s">%s</script>`,
 		html.EscapeString(source),
+		html.EscapeString(title),
 		escapeClosingScriptTag(strings.TrimSpace(summary.String())),
 	)
 	report := strings.Replace(viewerHTML, "  <script>\n", payload+"\n  <script>\n", 1)

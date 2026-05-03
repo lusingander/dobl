@@ -47,6 +47,12 @@ Generate a self-contained HTML report:
 dobl report build.log > report.html
 ```
 
+Write a report directly and set its title:
+
+```sh
+dobl report --title "CI build" --output report.html build.log
+```
+
 Show only failed steps:
 
 ```sh

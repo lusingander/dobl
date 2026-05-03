@@ -104,12 +104,23 @@ Examples:
 
 ```sh
 dobl report build.log > report.html
+dobl report --output report.html build.log
+dobl report --title "CI build" --output report.html build.log
 docker buildx build --progress=plain . 2>&1 | dobl report > report.html
 ```
 
 The report embeds the same step summary JSON used by `dobl summary --format
 json` into the static viewer UI. It can be opened directly in a browser and
 does not require a server.
+
+Flags:
+
+- `-o`, `--output FILE`
+  - Write the report to a file instead of stdout.
+- `--title TITLE`
+  - Set the report title shown in the HTML viewer.
+- `-h`, `--help`
+  - Show command help.
 
 ## Validation
 

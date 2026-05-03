@@ -734,7 +734,7 @@
       <div class="brand">
         <div class="mark">D</div>
         <div>
-          <h1>Dobl Summary Viewer</h1>
+          <h1 id="report-title">Dobl Summary Viewer</h1>
           <div class="source-name" id="source-name">No summary loaded</div>
         </div>
       </div>
@@ -824,6 +824,7 @@
       fileInput: document.querySelector("#file-input"),
       denseButton: document.querySelector("#dense-button"),
       clearButton: document.querySelector("#clear-button"),
+      reportTitle: document.querySelector("#report-title"),
       sourceName: document.querySelector("#source-name"),
       searchInput: document.querySelector("#search-input"),
       statusFilter: document.querySelector("#status-filter"),
@@ -850,7 +851,7 @@
       if (!file) return;
       try {
         const text = await file.text();
-        loadSummary(JSON.parse(text), file.name);
+        loadSummary(JSON.parse(text), file.name, "");
       } catch (error) {
         showError(error, file.name);
       } finally {
@@ -881,19 +882,20 @@
       if (!file) return;
       try {
         const text = await file.text();
-        loadSummary(JSON.parse(text), file.name);
+        loadSummary(JSON.parse(text), file.name, "");
       } catch (error) {
         showError(error, file.name);
       }
     });
 
-    function loadSummary(value, sourceName) {
+    function loadSummary(value, sourceName, title = "") {
       validateSummary(value);
 
       state.steps = value.map(normalizeStep).sort((a, b) => a.order - b.order);
       state.selectedID = state.steps[0] ? state.steps[0].id : "";
       state.sourceName = sourceName || "";
       state.errorMessage = "";
+      setReportTitle(title);
       els.sourceName.textContent = state.sourceName || "No summary loaded";
       els.clearButton.disabled = state.steps.length === 0 && !state.errorMessage;
       renderMetrics();
@@ -1503,6 +1505,7 @@
       state.sourceName = sourceName || "";
       state.errorMessage = error.message || "Invalid summary JSON";
       els.clearButton.disabled = false;
+      setReportTitle("");
       els.sourceName.textContent = state.sourceName ? state.sourceName + ": invalid summary JSON" : "Invalid summary JSON";
       renderMetrics();
       renderTimeline();
@@ -1518,10 +1521,17 @@
       }
 
       try {
-        loadSummary(JSON.parse(node.textContent), node.dataset.source || "Embedded summary");
+        loadSummary(JSON.parse(node.textContent), node.dataset.source || "Embedded summary", node.dataset.title || "");
       } catch (error) {
         showError(error, node.dataset.source || "Embedded summary");
       }
+    }
+
+    function setReportTitle(title) {
+      const defaultTitle = "Dobl Summary Viewer";
+      const displayTitle = title || defaultTitle;
+      els.reportTitle.textContent = displayTitle;
+      document.title = displayTitle;
     }
 
     loadEmbeddedSummary();

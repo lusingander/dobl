@@ -24,7 +24,7 @@ test("report output loads embedded summary", async ({ page }) => {
   const reportPath = path.join(os.tmpdir(), "dobl-browser-report.html");
   const html = execFileSync(
     "go",
-    ["run", "./cmd/dobl", "report", "testdata/error_plain.log"],
+    ["run", "./cmd/dobl", "report", "--title", "CI build", "testdata/error_plain.log"],
     {
       cwd: repoRoot,
       env: {
@@ -39,6 +39,8 @@ test("report output loads embedded summary", async ({ page }) => {
   await page.goto(pathToFileURL(reportPath).href);
 
   await expect(page.locator("#source-name")).toHaveText("testdata/error_plain.log");
+  await expect(page.locator("#report-title")).toHaveText("CI build");
+  await expect(page).toHaveTitle("CI build");
   await expect(page.locator("#metric-steps")).toHaveText("3");
   await expect(page.locator("#metric-errors")).toHaveText("1");
   await expect(page.locator("#visible-count")).toHaveText("3 shown");

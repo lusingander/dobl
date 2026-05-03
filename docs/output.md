@@ -205,6 +205,18 @@ Open `examples/viewer/index.html` in a browser and load `summary.json`.
 report embeds summary JSON into the same static viewer UI and can be opened
 directly in a browser without a server.
 
+Use `--output` to write the report directly:
+
+```sh
+dobl report --output report.html build.log
+```
+
+Use `--title` to set the viewer title:
+
+```sh
+dobl report --title "CI build" --output report.html build.log
+```
+
 ## Category Rules
 
 Summary `category` values are assigned from the parsed step name:

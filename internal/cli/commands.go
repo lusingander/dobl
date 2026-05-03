@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 
 	"github.com/lusingander/dobl"
 )
@@ -33,7 +35,9 @@ type summaryCmd struct {
 }
 
 type reportCmd struct {
-	File string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
+	Output string `short:"o" placeholder:"FILE" help:"Write the report to a file instead of stdout."`
+	Title  string `placeholder:"TITLE" help:"Set the report title shown in the HTML viewer."`
+	File   string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
 }
 
 func (c *parseCmd) Help() string {
@@ -58,6 +62,8 @@ func (c *summaryCmd) Help() string {
 func (c *reportCmd) Help() string {
 	return `Examples:
   dobl report build.log > report.html
+  dobl report --output report.html build.log
+  dobl report --title "CI build" --output report.html build.log
   docker buildx build --progress=plain . 2>&1 | dobl report > report.html`
 }
 
@@ -133,7 +139,15 @@ func (c *reportCmd) Run(ctx *runContext) error {
 	}
 
 	source := c.File
-	return encodeHTMLReport(ctx.stdout, steps, inputSource(source))
+	if c.Output == "" {
+		return encodeHTMLReport(ctx.stdout, steps, inputSource(source), c.Title)
+	}
+
+	var output bytes.Buffer
+	if err := encodeHTMLReport(&output, steps, inputSource(source), c.Title); err != nil {
+		return err
+	}
+	return os.WriteFile(c.Output, output.Bytes(), 0o644)
 }
 
 func (c *summaryCmd) validate() error {
