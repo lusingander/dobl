@@ -46,6 +46,34 @@ dobl summary --compact build.log > summary.json
 For all commands, flags, filters, and output modes, see the
 [CLI reference](docs/cli.md).
 
+## Examples
+
+`dobl summary --format text testdata/error_plain.log` shows the build at a
+glance:
+
+```text
+Dobl Summary
+Source: testdata/error_plain.log
+Steps: 3  Done: 2  Cached: 0  Warnings: 0  Errors: 1  Canceled: 0  Outputs: 2
+
+Timeline:
+#1 D internal 0.0s | #2 D internal 0.4s | #3 E RUN
+
+Problems:
+x  #3  ERROR  RUN  process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
+```
+
+`dobl summary --failed --format table build.log` focuses on failed steps:
+
+```text
+ID  STATUS  DURATION  STEP  INSTRUCTION  NAME                             OUTPUTS  PROGRESS  DIAGNOSTIC
+#3  ERROR             1/1   RUN          RUN echo before && exit 1         2        0         process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
+```
+
+`dobl report build.log > report.html` creates a single HTML file that can be
+opened directly in a browser. The report uses the same summary data as
+`dobl summary --format json`.
+
 ## What It Provides
 
 - Event JSON from BuildKit plain progress logs.
