@@ -35,5 +35,3 @@ jobs:
 
       - name: Check GitHub Actions pins
         run: task actions:check
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
