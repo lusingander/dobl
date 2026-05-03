@@ -243,10 +243,21 @@ func readSummarySteps(fileName string, stdin io.Reader) ([]dobl.Step, error) {
 	}
 
 	var steps []dobl.Step
-	if err := json.NewDecoder(input).Decode(&steps); err != nil {
-		source := "stdin"
-		if fileName != "" {
-			source = fileName
+	decoder := json.NewDecoder(input)
+	source := "stdin"
+	if fileName != "" {
+		source = fileName
+	}
+	if err := decoder.Decode(&steps); err != nil {
+		if err == io.EOF {
+			return nil, fmt.Errorf("parse summary %s: empty summary JSON", source)
+		}
+		return nil, fmt.Errorf("parse summary %s: %w", source, err)
+	}
+	var extra json.RawMessage
+	if err := decoder.Decode(&extra); err != io.EOF {
+		if err == nil {
+			return nil, fmt.Errorf("parse summary %s: unexpected trailing JSON data", source)
 		}
 		return nil, fmt.Errorf("parse summary %s: %w", source, err)
 	}

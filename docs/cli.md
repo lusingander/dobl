@@ -160,9 +160,10 @@ docker buildx build --progress=plain . 2>&1 | dobl tui
 
 The TUI uses the same parsed step summary model as `dobl summary --format json`.
 It starts with completed, non-streaming logs. Use `--summary` to inspect an
-existing summary JSON file instead of parsing a build log. When input is read
+existing summary JSON array instead of parsing a build log. When input is read
 from stdin, stdin is consumed as the build log or summary JSON and keyboard
-input is read from the terminal.
+input is read from the terminal. Terminal output is required; `TERM=dumb` and
+redirected TUI output are rejected.
 
 Keyboard controls:
 

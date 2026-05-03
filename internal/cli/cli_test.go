@@ -179,6 +179,36 @@ func TestLoadTUIStepsRejectsSummaryAndLogFile(t *testing.T) {
 	}
 }
 
+func TestLoadTUIStepsRejectsEmptySummaryJSON(t *testing.T) {
+	_, _, err := loadTUISteps("", "-", strings.NewReader(""))
+	if err == nil {
+		t.Fatalf("load TUI steps returned nil error")
+	}
+	if !strings.Contains(err.Error(), "empty summary JSON") {
+		t.Fatalf("error = %q", err)
+	}
+}
+
+func TestLoadTUIStepsRejectsTrailingSummaryJSON(t *testing.T) {
+	_, _, err := loadTUISteps("", "-", strings.NewReader(`[] []`))
+	if err == nil {
+		t.Fatalf("load TUI steps returned nil error")
+	}
+	if !strings.Contains(err.Error(), "unexpected trailing JSON data") {
+		t.Fatalf("error = %q", err)
+	}
+}
+
+func TestLoadTUIStepsRejectsObjectSummaryJSON(t *testing.T) {
+	_, _, err := loadTUISteps("", "-", strings.NewReader(`{"steps":[]}`))
+	if err == nil {
+		t.Fatalf("load TUI steps returned nil error")
+	}
+	if !strings.Contains(err.Error(), "cannot unmarshal object") {
+		t.Fatalf("error = %q", err)
+	}
+}
+
 func TestRunSummaryFromStdin(t *testing.T) {
 	var out bytes.Buffer
 	err := Run([]string{"dobl", "summary"}, strings.NewReader("#1 [internal] load build definition from Dockerfile\n#1 DONE 0.1s\n"), &out)
