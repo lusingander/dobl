@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/lusingander/dobl"
 )
 
 const minPaneWidth = 24
@@ -105,18 +106,32 @@ func (m Model) listView(width int, height int) string {
 }
 
 func (m Model) detailView(width int, height int) string {
-	lines := []string{"Details"}
 	if len(m.visible) == 0 {
-		lines = append(lines, "(none)")
-		return padBlock(lines, width, height)
+		return padBlock([]string{"Details", "(none)"}, width, height)
 	}
 
 	step := m.visible[m.selected]
-	lines = append(lines,
+	lines := detailLines(step)
+	maxTop := len(lines) - height
+	if maxTop < 0 {
+		maxTop = 0
+	}
+	top := m.detailTop
+	if top > maxTop {
+		top = maxTop
+	}
+	if top > 0 && len(lines) > 0 {
+		lines[0] = fmt.Sprintf("Details (+%d)", top)
+	}
+	return padBlock(lines[top:], width, height)
+}
+
+func detailLines(step dobl.Step) []string {
+	lines := []string{"Details",
 		fmt.Sprintf("%s %s", step.ID, statusText(step.Status)),
 		fmt.Sprintf("Step: %s", firstNonEmpty(step.DisplayName, step.Name, "(unnamed)")),
 		fmt.Sprintf("Category: %s", firstNonEmpty(string(step.Category), "other")),
-	)
+	}
 	if step.Duration != "" {
 		lines = append(lines, fmt.Sprintf("Duration: %s", step.Duration))
 	}
@@ -139,11 +154,11 @@ func (m Model) detailView(width int, height int) string {
 		lines = append(lines, "", "Output tail:")
 		lines = append(lines, step.OutputTail...)
 	}
-	return padBlock(lines, width, height)
+	return lines
 }
 
 func (m Model) helpView(width int) string {
-	mode := "j/k move  f filter  / search  esc clear  q quit"
+	mode := "j/k move  pgup/pgdn detail  f filter  / search  esc clear  q quit"
 	if m.searching {
 		mode = "type to search  enter apply  esc close  ctrl+c quit"
 	}

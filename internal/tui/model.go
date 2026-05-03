@@ -28,6 +28,7 @@ type Model struct {
 	search    string
 	searching bool
 	selected  int
+	detailTop int
 	width     int
 	height    int
 }
@@ -96,10 +97,16 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.move(-1)
 	case "g", "home":
 		m.selected = 0
+		m.detailTop = 0
 	case "G", "end":
 		if len(m.visible) > 0 {
 			m.selected = len(m.visible) - 1
 		}
+		m.detailTop = 0
+	case "pgdown", "ctrl+d":
+		m.scrollDetail(5)
+	case "pgup", "ctrl+u":
+		m.scrollDetail(-5)
 	case "f":
 		m.filter = nextFilter(m.filter)
 		m.refreshVisible()
@@ -152,6 +159,9 @@ func (m *Model) move(delta int) {
 	if m.selected >= len(m.visible) {
 		m.selected = len(m.visible) - 1
 	}
+	if delta != 0 {
+		m.detailTop = 0
+	}
 }
 
 func (m *Model) refreshVisible() {
@@ -161,5 +171,17 @@ func (m *Model) refreshVisible() {
 	}
 	if m.selected < 0 {
 		m.selected = 0
+	}
+	m.detailTop = 0
+}
+
+func (m *Model) scrollDetail(delta int) {
+	if len(m.visible) == 0 {
+		m.detailTop = 0
+		return
+	}
+	m.detailTop += delta
+	if m.detailTop < 0 {
+		m.detailTop = 0
 	}
 }

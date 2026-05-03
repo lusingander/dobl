@@ -144,6 +144,43 @@ func TestUpdateSearchModeFiltersAndEscClears(t *testing.T) {
 	assertStepIDs(t, model.visible, []string{"#1", "#2", "#3", "#4"})
 }
 
+func TestUpdateDetailScrollResetsWhenSelectionChanges(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyPgDown})
+	if model.detailTop != 5 {
+		t.Fatalf("detailTop = %d, want 5", model.detailTop)
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyDown})
+	if model.detailTop != 0 {
+		t.Fatalf("detailTop = %d, want 0", model.detailTop)
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyPgDown})
+	model = updateModel(t, model, keyRunes("f"))
+	if model.detailTop != 0 {
+		t.Fatalf("detailTop = %d, want 0 after filter", model.detailTop)
+	}
+}
+
+func TestDetailLinesIncludesDiagnosticsAndOutputTail(t *testing.T) {
+	lines := strings.Join(detailLines(sampleSteps()[3]), "\n")
+	for _, want := range []string{
+		"Details",
+		"#4 ERROR",
+		"Instruction: RUN",
+		"Error:",
+		"process did not complete successfully",
+		"Output tail:",
+		"missing dependency",
+	} {
+		if !strings.Contains(lines, want) {
+			t.Fatalf("detail lines %q do not contain %q", lines, want)
+		}
+	}
+}
+
 func TestViewHandlesEmptyAndNarrowScreens(t *testing.T) {
 	model := NewModel(nil, "empty.log")
 	model.width = 40

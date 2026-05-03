@@ -170,6 +170,8 @@ Keyboard controls:
   - Move the selected step.
 - `g`, `G`
   - Jump to the first or last visible step.
+- `pageup`, `pagedown`, `ctrl+u`, `ctrl+d`
+  - Scroll the selected step detail panel.
 - `f`
   - Cycle filters: all, problems, warnings, failed.
 - `/`
