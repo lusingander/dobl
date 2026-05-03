@@ -330,8 +330,28 @@ func writeProblemDetailsText(stdout io.Writer, problems []dobl.Step) error {
 				return err
 			}
 		}
-		if _, err := fmt.Fprintf(stdout, "%s %s %s\n", step.ID, statusText(step.Status), step.DisplayName); err != nil {
+		if _, err := fmt.Fprintf(stdout, "%s %s\n", step.ID, statusText(step.Status)); err != nil {
 			return err
+		}
+		if step.DisplayName != "" {
+			if _, err := fmt.Fprintf(stdout, "  Step: %s\n", step.DisplayName); err != nil {
+				return err
+			}
+		}
+		if step.Category != "" {
+			if _, err := fmt.Fprintf(stdout, "  Category: %s\n", step.Category); err != nil {
+				return err
+			}
+		}
+		if step.Instruction != "" {
+			if _, err := fmt.Fprintf(stdout, "  Instruction: %s\n", step.Instruction); err != nil {
+				return err
+			}
+		}
+		if index := formatStepIndex(step); index != "" {
+			if _, err := fmt.Fprintf(stdout, "  Dockerfile: %s\n", index); err != nil {
+				return err
+			}
 		}
 		if lines := lineRange(step); lines != "" {
 			if _, err := fmt.Fprintf(stdout, "  Lines: %s\n", lines); err != nil {

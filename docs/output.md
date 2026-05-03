@@ -171,7 +171,11 @@ Steps:
 #3  ERROR        RUN       RUN echo before && exit 1
 
 Problem Details:
-#3 ERROR RUN echo before && exit 1
+#3 ERROR
+  Step: RUN echo before && exit 1
+  Category: dockerfile
+  Instruction: RUN
+  Dockerfile: 1/1
   Lines: 6-9
   Outputs:
     0.102 before
