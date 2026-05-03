@@ -1,10 +1,11 @@
 # CLI Reference
 
-Dobl has three commands:
+Dobl has four commands:
 
 - `dobl parse [file]`
 - `dobl summary [file]`
 - `dobl report [file]`
+- `dobl tui [file]`
 
 When `file` is omitted or set to `-`, input is read from stdin.
 
@@ -135,6 +136,46 @@ Flags:
   - Write the report to a file instead of stdout.
 - `--title TITLE`
   - Set the report title shown in the HTML viewer.
+- `-h`, `--help`
+  - Show command help.
+
+## `dobl tui`
+
+Inspect a completed plain BuildKit build log in an interactive terminal UI.
+
+```sh
+dobl tui [file]
+```
+
+Examples:
+
+```sh
+dobl tui build.log
+docker buildx build --progress=plain . 2>&1 | dobl tui
+```
+
+The TUI uses the same parsed step summary model as `dobl summary --format json`.
+It starts with completed, non-streaming logs. When input is read from stdin,
+stdin is consumed as the build log and keyboard input is read from the terminal.
+
+Keyboard controls:
+
+- `j`, `k`, arrow keys
+  - Move the selected step.
+- `g`, `G`
+  - Jump to the first or last visible step.
+- `f`
+  - Cycle filters: all, problems, warnings, failed.
+- `/`
+  - Search steps by ID, status, category, instruction, name, diagnostics, or
+    output tail.
+- `esc`
+  - Clear the current search.
+- `q`, `ctrl+c`
+  - Quit.
+
+Flags:
+
 - `-h`, `--help`
   - Show command help.
 

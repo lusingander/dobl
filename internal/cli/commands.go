@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/lusingander/dobl"
+	dobltui "github.com/lusingander/dobl/internal/tui"
 )
 
 const (
@@ -43,6 +44,10 @@ type reportCmd struct {
 	File   string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
 }
 
+type tuiCmd struct {
+	File string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
+}
+
 func (c *parseCmd) Help() string {
 	return `Examples:
   dobl parse build.log
@@ -72,6 +77,12 @@ func (c *reportCmd) Help() string {
   dobl report --output report.html build.log
   dobl report --title "CI build" --output report.html build.log
   docker buildx build --progress=plain . 2>&1 | dobl report > report.html`
+}
+
+func (c *tuiCmd) Help() string {
+	return `Examples:
+  dobl tui build.log
+  docker buildx build --progress=plain . 2>&1 | dobl tui`
 }
 
 func (c *parseCmd) Run(ctx *runContext) error {
@@ -163,6 +174,23 @@ func (c *reportCmd) Run(ctx *runContext) error {
 		return err
 	}
 	return os.WriteFile(c.Output, output.Bytes(), 0o644)
+}
+
+func (c *tuiCmd) Run(ctx *runContext) error {
+	log, err := parseInput(c.File, ctx.stdin)
+	if err != nil {
+		return err
+	}
+
+	steps := log.Steps()
+	for i := range steps {
+		steps[i].Events = nil
+	}
+
+	return dobltui.Run(steps, dobltui.Options{
+		Source: inputSource(c.File),
+		Output: ctx.stdout,
+	})
 }
 
 func (c *summaryCmd) validate() error {

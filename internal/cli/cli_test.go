@@ -71,6 +71,7 @@ func TestRunHelp(t *testing.T) {
 		"Parse and summarize plain Docker BuildKit build logs.",
 		"parse",
 		"summary",
+		"tui",
 	} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("help output %q does not contain %q", output, want)
@@ -98,6 +99,11 @@ func TestRunCommandHelp(t *testing.T) {
 			name: "report",
 			args: []string{"dobl", "report", "--help"},
 			want: []string{"Usage: dobl report", "dobl report build.log > report.html"},
+		},
+		{
+			name: "tui",
+			args: []string{"dobl", "tui", "--help"},
+			want: []string{"Usage: dobl tui", "dobl tui build.log", "dobl tui"},
 		},
 	}
 

@@ -11,6 +11,7 @@ type application struct {
 	Parse   parseCmd   `cmd:"" help:"Parse a plain build log into event JSON."`
 	Summary summaryCmd `cmd:"" help:"Summarize a plain build log by BuildKit step."`
 	Report  reportCmd  `cmd:"" help:"Generate a self-contained HTML summary report."`
+	Tui     tuiCmd     `cmd:"" help:"Inspect a plain build log in an interactive terminal UI."`
 }
 
 type runContext struct {

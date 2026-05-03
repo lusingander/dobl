@@ -37,6 +37,12 @@ Generate a self-contained HTML report:
 dobl report build.log > report.html
 ```
 
+Inspect it interactively in a terminal:
+
+```sh
+dobl tui build.log
+```
+
 Produce JSON for other tools:
 
 ```sh
@@ -81,6 +87,7 @@ opened directly in a browser. The report uses the same summary data as
 - Human-readable table and static terminal summaries.
 - Filters for failed steps, warnings, statuses, Dockerfile metadata, and step
   IDs.
+- An interactive terminal UI for completed plain build logs.
 - A self-contained HTML report generated from a build log.
 - A static summary JSON viewer in [examples/viewer](examples/viewer).
 
@@ -123,6 +130,7 @@ Implemented:
 - non-streaming `docker build` / `docker buildx build` plain progress logs
 - event JSON output
 - step summary JSON, table, and text output
+- non-streaming terminal UI
 - static summary JSON viewer
 - self-contained HTML report output
 - normalization for common ANSI, carriage-return, timestamp, and CI log-prefix
@@ -132,7 +140,7 @@ Not implemented:
 
 - streaming parsing
 - `--progress=rawjson`
-- terminal visualization
+- streaming terminal visualization
 
 ## License
 
