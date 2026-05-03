@@ -1,10 +1,26 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/lusingander/dobl"
 )
+
+func ParseFilterMode(value string) (FilterMode, error) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", "all":
+		return FilterAll, nil
+	case "problems":
+		return FilterProblems, nil
+	case "warnings":
+		return FilterWarnings, nil
+	case "failed":
+		return FilterFailed, nil
+	default:
+		return FilterAll, fmt.Errorf("unknown TUI filter %q", value)
+	}
+}
 
 type FilterMode int
 

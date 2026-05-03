@@ -30,6 +30,36 @@ func TestFilterSteps(t *testing.T) {
 	}
 }
 
+func TestParseFilterMode(t *testing.T) {
+	tests := []struct {
+		value string
+		want  FilterMode
+	}{
+		{value: "", want: FilterAll},
+		{value: "all", want: FilterAll},
+		{value: "problems", want: FilterProblems},
+		{value: "warnings", want: FilterWarnings},
+		{value: "failed", want: FilterFailed},
+		{value: "FAILED", want: FilterFailed},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.value, func(t *testing.T) {
+			got, err := ParseFilterMode(tt.value)
+			if err != nil {
+				t.Fatalf("parse filter mode returned error: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("filter = %s, want %s", got, tt.want)
+			}
+		})
+	}
+
+	if _, err := ParseFilterMode("slow"); err == nil {
+		t.Fatalf("parse filter mode returned nil error for unknown filter")
+	}
+}
+
 func TestSearchMatchesStepFieldsAndOutputTail(t *testing.T) {
 	steps := sampleSteps()
 

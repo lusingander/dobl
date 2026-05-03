@@ -13,9 +13,11 @@ const (
 )
 
 type Options struct {
-	Source string
-	Input  io.Reader
-	Output io.Writer
+	Source        string
+	InitialFilter FilterMode
+	InitialSearch string
+	Input         io.Reader
+	Output        io.Writer
 }
 
 type Model struct {
@@ -48,6 +50,9 @@ func Run(steps []dobl.Step, options Options) error {
 	}
 
 	model := NewModel(steps, source)
+	model.filter = options.InitialFilter
+	model.search = options.InitialSearch
+	model.refreshVisible()
 	programOptions := []tea.ProgramOption{tea.WithAltScreen(), tea.WithInputTTY()}
 	if options.Input != nil {
 		programOptions = append(programOptions, tea.WithInput(options.Input))

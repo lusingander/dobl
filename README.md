@@ -43,6 +43,12 @@ Inspect it interactively in a terminal:
 dobl tui build.log
 ```
 
+Start focused on problem steps:
+
+```sh
+dobl tui --filter problems build.log
+```
+
 Produce JSON for other tools:
 
 ```sh

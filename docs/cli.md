@@ -151,6 +151,8 @@ Examples:
 
 ```sh
 dobl tui build.log
+dobl tui --filter problems build.log
+dobl tui --search "missing dependency" build.log
 dobl summary --compact build.log > summary.json
 dobl tui --summary summary.json
 docker buildx build --progress=plain . 2>&1 | dobl tui
@@ -183,6 +185,10 @@ Flags:
 - `--summary FILE`
   - Read summary JSON from this file instead of parsing a plain build log.
   - Use `--summary -` to read summary JSON from stdin.
+- `--filter all|problems|warnings|failed`
+  - Set the initial filter. The default is `all`.
+- `--search QUERY`
+  - Set the initial search query.
 - `-h`, `--help`
   - Show command help.
 

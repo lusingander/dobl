@@ -103,7 +103,7 @@ func TestRunCommandHelp(t *testing.T) {
 		{
 			name: "tui",
 			args: []string{"dobl", "tui", "--help"},
-			want: []string{"Usage: dobl tui", "dobl tui build.log", "dobl tui --summary summary.json"},
+			want: []string{"Usage: dobl tui", "dobl tui build.log", "dobl tui --filter problems", "dobl tui --summary summary.json"},
 		},
 	}
 
