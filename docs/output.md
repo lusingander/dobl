@@ -199,6 +199,11 @@ Sections:
 `summary --sort KEY` also applies to text output. The supported keys are
 `order`, `duration`, `status`, `outputs`, and `warnings`.
 
+`summary --top slow|warnings|outputs --format text` adds a top section before
+the full step list. This is useful when the original step order should remain
+visible but triage needs the slowest, noisiest, or warning-heavy steps called
+out separately.
+
 ## Static Viewer
 
 The static viewer in [`examples/viewer`](../examples/viewer) reads summary JSON

@@ -31,6 +31,7 @@ type summaryCmd struct {
 	Instruction string `placeholder:"INSTRUCTION" help:"Only include Dockerfile steps with this instruction."`
 	Step        string `placeholder:"ID" help:"Only include a specific BuildKit step ID, such as #3 or 3."`
 	Sort        string `default:"order" placeholder:"KEY" enum:"order,duration,status,outputs,warnings" help:"Sort steps. One of: order, duration, status, outputs, warnings."`
+	Top         string `placeholder:"KEY" help:"Include a top section in text output. One of: slow, warnings, outputs."`
 	Wide        bool   `help:"Do not truncate table error details."`
 	File        string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
 }
@@ -57,6 +58,7 @@ func (c *summaryCmd) Help() string {
   dobl summary --warnings --format table build.log
   dobl summary --status ERROR build.log
   dobl summary --sort status --format text build.log
+  dobl summary --top slow --format text build.log
   dobl summary --stage build --instruction RUN build.log
   dobl summary --step '#3' build.log`
 }
@@ -126,7 +128,10 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 	case formatTable:
 		return encodeSummaryTable(ctx.stdout, steps, c.Wide)
 	case formatText:
-		return encodeSummaryText(ctx.stdout, steps, inputSource(c.File))
+		return encodeSummaryText(ctx.stdout, steps, textSummaryOptions{
+			Source: inputSource(c.File),
+			Top:    c.Top,
+		})
 	default:
 		return fmt.Errorf("summary format %q is not supported", c.Format)
 	}
@@ -181,6 +186,12 @@ func (c *summaryCmd) validate() error {
 	}
 	if c.Wide && c.Format != formatTable {
 		return fmt.Errorf("--wide is only supported with --format=table")
+	}
+	if c.Top != "" && !isKnownTop(c.Top) {
+		return fmt.Errorf("unknown top key %q", c.Top)
+	}
+	if c.Top != "" && c.Format != formatText {
+		return fmt.Errorf("--top is only supported with --format=text")
 	}
 	return nil
 }

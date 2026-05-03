@@ -58,6 +58,7 @@ dobl summary --failed --format text build.log
 dobl summary --warnings --format table build.log
 dobl summary --status ERROR build.log
 dobl summary --sort duration --format text build.log
+dobl summary --top slow --format text build.log
 dobl summary --stage build --instruction RUN build.log
 dobl summary --step '#3' build.log
 ```
@@ -93,6 +94,9 @@ Flags:
   - Supported keys: `order`, `duration`, `status`, `outputs`, `warnings`.
   - `duration`, `outputs`, and `warnings` sort descending. `status` sorts
     problem statuses first.
+- `--top KEY`
+  - Include a top section in text output. Only supported with `--format text`.
+  - Supported keys: `slow`, `warnings`, `outputs`.
 - `--wide`
   - Do not truncate table error details. Only supported with `--format table`.
 - `-h`, `--help`

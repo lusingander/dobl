@@ -150,3 +150,12 @@ func isKnownStatus(status dobl.EventStatus) bool {
 		return false
 	}
 }
+
+func isKnownTop(key string) bool {
+	switch key {
+	case "slow", "warnings", "outputs":
+		return true
+	default:
+		return false
+	}
+}

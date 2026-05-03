@@ -423,6 +423,32 @@ func TestRunSummaryTextWarningsFilter(t *testing.T) {
 	}
 }
 
+func TestRunSummaryTextTopSlow(t *testing.T) {
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "summary", "--format", "text", "--top", "slow"}, strings.NewReader(strings.Join([]string{
+		"#1 [internal] load build definition from Dockerfile",
+		"#1 DONE 0.1s",
+		"#2 [1/2] RUN go test ./...",
+		"#2 DONE 3.2s",
+		"#3 [2/2] RUN go vet ./...",
+		"#3 DONE 1.4s",
+	}, "\n")), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	topIndex := strings.Index(output, "Top Slow Steps:")
+	if topIndex == -1 {
+		t.Fatalf("text output missing top section: %q", output)
+	}
+	firstSlow := strings.Index(output[topIndex:], "#2  3.2s  RUN")
+	secondSlow := strings.Index(output[topIndex:], "#3  1.4s  RUN")
+	if firstSlow == -1 || secondSlow == -1 || firstSlow > secondSlow {
+		t.Fatalf("top slow section is not sorted by duration: %q", output)
+	}
+}
+
 func TestRunSummaryTextRejectsJSONOnlyOptions(t *testing.T) {
 	tests := [][]string{
 		{"dobl", "summary", "--format", "text", "--events"},
@@ -438,6 +464,28 @@ func TestRunSummaryTextRejectsJSONOnlyOptions(t *testing.T) {
 				t.Fatal("run returned nil error")
 			}
 		})
+	}
+}
+
+func TestRunSummaryTopRequiresTextFormat(t *testing.T) {
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "summary", "--top", "slow"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	if err == nil {
+		t.Fatal("run returned nil error")
+	}
+	if !strings.Contains(err.Error(), "--top is only supported with --format=text") {
+		t.Fatalf("error = %q, want --top validation", err)
+	}
+}
+
+func TestRunSummaryRejectsUnknownTopKey(t *testing.T) {
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "summary", "--format", "text", "--top", "memory"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	if err == nil {
+		t.Fatal("run returned nil error")
+	}
+	if !strings.Contains(err.Error(), `unknown top key "memory"`) {
+		t.Fatalf("error = %q, want unknown top key", err)
 	}
 }
 

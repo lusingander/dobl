@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -14,6 +15,12 @@ import (
 
 const tableErrorWidth = 96
 const textWidth = 100
+const textTopCount = 5
+
+type textSummaryOptions struct {
+	Source string
+	Top    string
+}
 
 type summaryStats struct {
 	Total         int
@@ -88,14 +95,14 @@ func encodeSummaryTable(stdout io.Writer, steps []dobl.Step, wide bool) error {
 	return writer.Flush()
 }
 
-func encodeSummaryText(stdout io.Writer, steps []dobl.Step, source string) error {
+func encodeSummaryText(stdout io.Writer, steps []dobl.Step, options textSummaryOptions) error {
 	stats := collectSummaryStats(steps)
 	problems := problemSteps(steps)
 
 	if _, err := fmt.Fprintln(stdout, "Dobl Summary"); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(stdout, "Source: %s\n", source); err != nil {
+	if _, err := fmt.Fprintf(stdout, "Source: %s\n", options.Source); err != nil {
 		return err
 	}
 	if _, err := fmt.Fprintf(
@@ -117,6 +124,11 @@ func encodeSummaryText(stdout io.Writer, steps []dobl.Step, source string) error
 	}
 	if err := writeProblemsText(stdout, problems); err != nil {
 		return err
+	}
+	if options.Top != "" {
+		if err := writeTopText(stdout, steps, options.Top); err != nil {
+			return err
+		}
 	}
 	if err := writeStepsText(stdout, steps); err != nil {
 		return err
@@ -263,6 +275,122 @@ func writeProblemsText(stdout io.Writer, problems []dobl.Step) error {
 	}
 	_, err := fmt.Fprintln(stdout)
 	return err
+}
+
+func writeTopText(stdout io.Writer, steps []dobl.Step, key string) error {
+	if _, err := fmt.Fprintf(stdout, "Top %s:\n", topTitle(key)); err != nil {
+		return err
+	}
+	top := topSteps(steps, key, textTopCount)
+	if len(top) == 0 {
+		if _, err := fmt.Fprintln(stdout, "(none)"); err != nil {
+			return err
+		}
+		_, err := fmt.Fprintln(stdout)
+		return err
+	}
+
+	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
+	for _, step := range top {
+		if _, err := fmt.Fprintf(
+			writer,
+			"%s\t%s\t%s\t%s\n",
+			step.ID,
+			topValue(step, key),
+			stepLabel(step),
+			step.DisplayName,
+		); err != nil {
+			return err
+		}
+	}
+	if err := writer.Flush(); err != nil {
+		return err
+	}
+	_, err := fmt.Fprintln(stdout)
+	return err
+}
+
+func topSteps(steps []dobl.Step, key string, limit int) []dobl.Step {
+	top := make([]dobl.Step, 0, len(steps))
+	for _, step := range steps {
+		if includeTopStep(step, key) {
+			top = append(top, step)
+		}
+	}
+	sort.SliceStable(top, func(i, j int) bool {
+		left := topMetric(top[i], key)
+		right := topMetric(top[j], key)
+		if left != right {
+			return left > right
+		}
+		return top[i].Order < top[j].Order
+	})
+	if len(top) > limit {
+		return top[:limit]
+	}
+	return top
+}
+
+func includeTopStep(step dobl.Step, key string) bool {
+	switch key {
+	case "slow":
+		return step.DurationNanos != nil && *step.DurationNanos > 0
+	case "warnings":
+		return step.WarningCount > 0
+	case "outputs":
+		return step.OutputCount > 0
+	default:
+		return false
+	}
+}
+
+func topMetric(step dobl.Step, key string) int64 {
+	switch key {
+	case "slow":
+		return durationNanos(step)
+	case "warnings":
+		return int64(step.WarningCount)
+	case "outputs":
+		return int64(step.OutputCount)
+	default:
+		return 0
+	}
+}
+
+func topTitle(key string) string {
+	switch key {
+	case "slow":
+		return "Slow Steps"
+	case "warnings":
+		return "Warning Steps"
+	case "outputs":
+		return "Output Steps"
+	default:
+		return "Steps"
+	}
+}
+
+func topValue(step dobl.Step, key string) string {
+	switch key {
+	case "slow":
+		if step.Duration != "" {
+			return step.Duration
+		}
+		return "0s"
+	case "warnings":
+		return countLabel(step.WarningCount, "warning")
+	case "outputs":
+		return countLabel(step.OutputCount, "output")
+	default:
+		return ""
+	}
+}
+
+func countLabel(count int, label string) string {
+	if count == 1 {
+		return fmt.Sprintf("1 %s", label)
+	}
+	return fmt.Sprintf("%d %ss", count, label)
 }
 
 func problemMarker(step dobl.Step) string {
