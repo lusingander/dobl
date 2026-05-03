@@ -53,6 +53,12 @@ Call out top triage targets without reordering the full step list:
 dobl summary --top slow --format text build.log
 ```
 
+Change the amount of text detail:
+
+```sh
+dobl summary --details all --format text build.log
+```
+
 Generate a self-contained HTML report:
 
 ```sh
@@ -106,7 +112,8 @@ x  #3  ERROR  RUN  process "/bin/sh -c echo before && exit 1" did not complete s
 The default output format is JSON. Table output truncates long error details by
 default; use `--wide` to keep full error text. Text output is a static
 terminal-friendly view for CI logs and local triage, with optional top sections
-for slow, warning-heavy, or noisy steps.
+for slow, warning-heavy, or noisy steps and detail modes for problem-only,
+all-step, or compact output.
 
 Summary JSON is the stable input contract for downstream reports and
 visualizations. See [Output formats](docs/output.md) and the

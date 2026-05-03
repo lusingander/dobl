@@ -204,6 +204,10 @@ the full step list. This is useful when the original step order should remain
 visible but triage needs the slowest, noisiest, or warning-heavy steps called
 out separately.
 
+`summary --details problems|all|none --format text` controls the final detail
+section. The default, `problems`, keeps the output problem-first. `all` expands
+details for every filtered step, and `none` omits the detail section.
+
 ## Static Viewer
 
 The static viewer in [`examples/viewer`](../examples/viewer) reads summary JSON

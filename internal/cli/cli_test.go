@@ -449,6 +449,45 @@ func TestRunSummaryTextTopSlow(t *testing.T) {
 	}
 }
 
+func TestRunSummaryTextDetailsAll(t *testing.T) {
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "summary", "--format", "text", "--details", "all"}, strings.NewReader(strings.Join([]string{
+		"#1 [internal] load build definition from Dockerfile",
+		"#1 DONE 0.1s",
+		"#2 [1/1] RUN make build",
+		"#2 0.100 compiling",
+		"#2 ERROR: process failed",
+	}, "\n")), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	for _, want := range []string{
+		"Step Details:",
+		"#1 DONE",
+		"  Step: [internal] load build definition from Dockerfile",
+		"#2 ERROR",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("text output %q does not contain %q", output, want)
+		}
+	}
+}
+
+func TestRunSummaryTextDetailsNone(t *testing.T) {
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "summary", "--format", "text", "--details", "none"}, strings.NewReader("#1 ERROR: process failed\n"), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	if strings.Contains(output, "Problem Details:") || strings.Contains(output, "Step Details:") {
+		t.Fatalf("text output contains details section: %q", output)
+	}
+}
+
 func TestRunSummaryTextRejectsJSONOnlyOptions(t *testing.T) {
 	tests := [][]string{
 		{"dobl", "summary", "--format", "text", "--events"},
@@ -486,6 +525,28 @@ func TestRunSummaryRejectsUnknownTopKey(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), `unknown top key "memory"`) {
 		t.Fatalf("error = %q, want unknown top key", err)
+	}
+}
+
+func TestRunSummaryDetailsRequiresTextFormat(t *testing.T) {
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "summary", "--details", "none"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	if err == nil {
+		t.Fatal("run returned nil error")
+	}
+	if !strings.Contains(err.Error(), "--details is only supported with --format=text") {
+		t.Fatalf("error = %q, want --details validation", err)
+	}
+}
+
+func TestRunSummaryRejectsUnknownDetailsMode(t *testing.T) {
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "summary", "--format", "text", "--details", "verbose"}, strings.NewReader("#1 DONE 0.1s\n"), &out)
+	if err == nil {
+		t.Fatal("run returned nil error")
+	}
+	if !strings.Contains(err.Error(), `unknown details mode "verbose"`) {
+		t.Fatalf("error = %q, want unknown details mode", err)
 	}
 }
 

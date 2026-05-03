@@ -32,6 +32,7 @@ type summaryCmd struct {
 	Step        string `placeholder:"ID" help:"Only include a specific BuildKit step ID, such as #3 or 3."`
 	Sort        string `default:"order" placeholder:"KEY" enum:"order,duration,status,outputs,warnings" help:"Sort steps. One of: order, duration, status, outputs, warnings."`
 	Top         string `placeholder:"KEY" help:"Include a top section in text output. One of: slow, warnings, outputs."`
+	Details     string `placeholder:"MODE" help:"Set text detail section mode. One of: problems, all, none."`
 	Wide        bool   `help:"Do not truncate table error details."`
 	File        string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
 }
@@ -59,6 +60,7 @@ func (c *summaryCmd) Help() string {
   dobl summary --status ERROR build.log
   dobl summary --sort status --format text build.log
   dobl summary --top slow --format text build.log
+  dobl summary --details all --format text build.log
   dobl summary --stage build --instruction RUN build.log
   dobl summary --step '#3' build.log`
 }
@@ -129,8 +131,9 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 		return encodeSummaryTable(ctx.stdout, steps, c.Wide)
 	case formatText:
 		return encodeSummaryText(ctx.stdout, steps, textSummaryOptions{
-			Source: inputSource(c.File),
-			Top:    c.Top,
+			Source:  inputSource(c.File),
+			Top:     c.Top,
+			Details: c.Details,
 		})
 	default:
 		return fmt.Errorf("summary format %q is not supported", c.Format)
@@ -192,6 +195,12 @@ func (c *summaryCmd) validate() error {
 	}
 	if c.Top != "" && c.Format != formatText {
 		return fmt.Errorf("--top is only supported with --format=text")
+	}
+	if c.Details != "" && !isKnownDetailsMode(c.Details) {
+		return fmt.Errorf("unknown details mode %q", c.Details)
+	}
+	if c.Details != "" && c.Format != formatText {
+		return fmt.Errorf("--details is only supported with --format=text")
 	}
 	return nil
 }

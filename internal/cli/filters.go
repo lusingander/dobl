@@ -159,3 +159,12 @@ func isKnownTop(key string) bool {
 		return false
 	}
 }
+
+func isKnownDetailsMode(mode string) bool {
+	switch mode {
+	case "problems", "all", "none":
+		return true
+	default:
+		return false
+	}
+}

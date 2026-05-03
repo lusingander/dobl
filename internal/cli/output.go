@@ -18,8 +18,9 @@ const textWidth = 100
 const textTopCount = 5
 
 type textSummaryOptions struct {
-	Source string
-	Top    string
+	Source  string
+	Top     string
+	Details string
 }
 
 type summaryStats struct {
@@ -133,7 +134,7 @@ func encodeSummaryText(stdout io.Writer, steps []dobl.Step, options textSummaryO
 	if err := writeStepsText(stdout, steps); err != nil {
 		return err
 	}
-	return writeProblemDetailsText(stdout, problems)
+	return writeDetailsText(stdout, detailSteps(steps, problems, options.Details), detailTitle(options.Details))
 }
 
 func collectSummaryStats(steps []dobl.Step) summaryStats {
@@ -445,14 +446,34 @@ func writeStepsText(stdout io.Writer, steps []dobl.Step) error {
 	return err
 }
 
-func writeProblemDetailsText(stdout io.Writer, problems []dobl.Step) error {
-	if len(problems) == 0 {
+func detailSteps(steps []dobl.Step, problems []dobl.Step, mode string) []dobl.Step {
+	switch mode {
+	case "", "problems":
+		return problems
+	case "all":
+		return steps
+	case "none":
+		return nil
+	default:
+		return problems
+	}
+}
+
+func detailTitle(mode string) string {
+	if mode == "all" {
+		return "Step Details:"
+	}
+	return "Problem Details:"
+}
+
+func writeDetailsText(stdout io.Writer, details []dobl.Step, title string) error {
+	if len(details) == 0 {
 		return nil
 	}
-	if _, err := fmt.Fprintln(stdout, "Problem Details:"); err != nil {
+	if _, err := fmt.Fprintln(stdout, title); err != nil {
 		return err
 	}
-	for i, step := range problems {
+	for i, step := range details {
 		if i > 0 {
 			if _, err := fmt.Fprintln(stdout); err != nil {
 				return err
