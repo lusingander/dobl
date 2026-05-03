@@ -59,6 +59,12 @@ Change the amount of text detail:
 dobl summary --details all --format text build.log
 ```
 
+Keep long text diagnostics untruncated:
+
+```sh
+dobl summary --format text --wide build.log
+```
+
 Generate a self-contained HTML report:
 
 ```sh
@@ -109,11 +115,11 @@ Problems:
 x  #3  ERROR  RUN  process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
 ```
 
-The default output format is JSON. Table output truncates long error details by
-default; use `--wide` to keep full error text. Text output is a static
-terminal-friendly view for CI logs and local triage, with optional top sections
-for slow, warning-heavy, or noisy steps and detail modes for problem-only,
-all-step, or compact output.
+The default output format is JSON. Table and text outputs truncate long
+diagnostics by default; use `--wide` to keep full diagnostic text. Text output
+is a static terminal-friendly view for CI logs and local triage, with optional
+top sections for slow, warning-heavy, or noisy steps and detail modes for
+problem-only, all-step, or compact output.
 
 Summary JSON is the stable input contract for downstream reports and
 visualizations. See [Output formats](docs/output.md) and the

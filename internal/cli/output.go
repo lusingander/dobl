@@ -21,6 +21,7 @@ type textSummaryOptions struct {
 	Source  string
 	Top     string
 	Details string
+	Wide    bool
 }
 
 type summaryStats struct {
@@ -123,7 +124,7 @@ func encodeSummaryText(stdout io.Writer, steps []dobl.Step, options textSummaryO
 	if err := writeTimelineText(stdout, steps); err != nil {
 		return err
 	}
-	if err := writeProblemsText(stdout, problems); err != nil {
+	if err := writeProblemsText(stdout, problems, options.Wide); err != nil {
 		return err
 	}
 	if options.Top != "" {
@@ -245,7 +246,7 @@ func statusShort(status dobl.EventStatus) string {
 	}
 }
 
-func writeProblemsText(stdout io.Writer, problems []dobl.Step) error {
+func writeProblemsText(stdout io.Writer, problems []dobl.Step, wide bool) error {
 	if _, err := fmt.Fprintln(stdout, "Problems:"); err != nil {
 		return err
 	}
@@ -259,6 +260,10 @@ func writeProblemsText(stdout io.Writer, problems []dobl.Step) error {
 
 	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
 	for _, step := range problems {
+		diagnostic := stepDiagnostic(step)
+		if !wide {
+			diagnostic = truncateString(diagnostic, tableErrorWidth)
+		}
 		if _, err := fmt.Fprintf(
 			writer,
 			"%s\t%s\t%s\t%s\t%s\n",
@@ -266,7 +271,7 @@ func writeProblemsText(stdout io.Writer, problems []dobl.Step) error {
 			step.ID,
 			statusText(step.Status),
 			stepLabel(step),
-			truncateString(stepDiagnostic(step), tableErrorWidth),
+			diagnostic,
 		); err != nil {
 			return err
 		}

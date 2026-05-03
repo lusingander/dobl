@@ -423,6 +423,28 @@ func TestRunSummaryTextWarningsFilter(t *testing.T) {
 	}
 }
 
+func TestRunSummaryTextWideKeepsLongDiagnostics(t *testing.T) {
+	longError := strings.TrimSpace("error: " + strings.Repeat("very-long-detail ", 12))
+
+	var narrow bytes.Buffer
+	err := Run([]string{"dobl", "summary", "--format", "text", "--details", "none"}, strings.NewReader("#1 ERROR: "+longError+"\n"), &narrow)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+	if !strings.Contains(narrow.String(), "...") {
+		t.Fatalf("narrow text output did not truncate diagnostic: %q", narrow.String())
+	}
+
+	var wide bytes.Buffer
+	err = Run([]string{"dobl", "summary", "--format", "text", "--wide", "--details", "none"}, strings.NewReader("#1 ERROR: "+longError+"\n"), &wide)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+	if !strings.Contains(wide.String(), longError) {
+		t.Fatalf("wide text output missing full diagnostic: %q", wide.String())
+	}
+}
+
 func TestRunSummaryTextTopSlow(t *testing.T) {
 	var out bytes.Buffer
 	err := Run([]string{"dobl", "summary", "--format", "text", "--top", "slow"}, strings.NewReader(strings.Join([]string{
@@ -492,7 +514,6 @@ func TestRunSummaryTextRejectsJSONOnlyOptions(t *testing.T) {
 	tests := [][]string{
 		{"dobl", "summary", "--format", "text", "--events"},
 		{"dobl", "summary", "--format", "text", "--compact"},
-		{"dobl", "summary", "--format", "text", "--wide"},
 	}
 
 	for _, args := range tests {

@@ -53,6 +53,7 @@ dobl summary build.log
 dobl summary --format table build.log
 dobl summary --format text build.log
 dobl summary --format table --wide build.log
+dobl summary --format text --wide build.log
 dobl summary --failed --format table build.log
 dobl summary --failed --format text build.log
 dobl summary --warnings --format table build.log
@@ -102,7 +103,8 @@ Flags:
   - Set the text detail section mode. Only supported with `--format text`.
   - Supported modes: `problems`, `all`, `none`. The default is `problems`.
 - `--wide`
-  - Do not truncate table error details. Only supported with `--format table`.
+  - Do not truncate table or text diagnostics. Only supported with
+    `--format table` or `--format text`.
 - `-h`, `--help`
   - Show command help.
 

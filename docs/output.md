@@ -208,6 +208,9 @@ out separately.
 section. The default, `problems`, keeps the output problem-first. `all` expands
 details for every filtered step, and `none` omits the detail section.
 
+`--wide` also applies to text output. It keeps full diagnostics in the
+`Problems` section instead of truncating them.
+
 ## Static Viewer
 
 The static viewer in [`examples/viewer`](../examples/viewer) reads summary JSON

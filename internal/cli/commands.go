@@ -33,7 +33,7 @@ type summaryCmd struct {
 	Sort        string `default:"order" placeholder:"KEY" enum:"order,duration,status,outputs,warnings" help:"Sort steps. One of: order, duration, status, outputs, warnings."`
 	Top         string `placeholder:"KEY" help:"Include a top section in text output. One of: slow, warnings, outputs."`
 	Details     string `placeholder:"MODE" help:"Set text detail section mode. One of: problems, all, none."`
-	Wide        bool   `help:"Do not truncate table error details."`
+	Wide        bool   `help:"Do not truncate table or text diagnostics."`
 	File        string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
 }
 
@@ -55,6 +55,7 @@ func (c *summaryCmd) Help() string {
   dobl summary --format table build.log
   dobl summary --format text build.log
   dobl summary --format table --wide build.log
+  dobl summary --format text --wide build.log
   dobl summary --failed --format table build.log
   dobl summary --warnings --format table build.log
   dobl summary --status ERROR build.log
@@ -134,6 +135,7 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 			Source:  inputSource(c.File),
 			Top:     c.Top,
 			Details: c.Details,
+			Wide:    c.Wide,
 		})
 	default:
 		return fmt.Errorf("summary format %q is not supported", c.Format)
@@ -187,8 +189,8 @@ func (c *summaryCmd) validate() error {
 			return fmt.Errorf("--compact is only supported with --format=json")
 		}
 	}
-	if c.Wide && c.Format != formatTable {
-		return fmt.Errorf("--wide is only supported with --format=table")
+	if c.Wide && c.Format != formatTable && c.Format != formatText {
+		return fmt.Errorf("--wide is only supported with --format=table or --format=text")
 	}
 	if c.Top != "" && !isKnownTop(c.Top) {
 		return fmt.Errorf("unknown top key %q", c.Top)
