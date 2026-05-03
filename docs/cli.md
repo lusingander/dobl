@@ -51,8 +51,10 @@ Examples:
 ```sh
 dobl summary build.log
 dobl summary --format table build.log
+dobl summary --format text build.log
 dobl summary --format table --wide build.log
 dobl summary --failed --format table build.log
+dobl summary --failed --format text build.log
 dobl summary --warnings --format table build.log
 dobl summary --status ERROR build.log
 dobl summary --stage build --instruction RUN build.log
@@ -61,7 +63,7 @@ dobl summary --step '#3' build.log
 
 Flags:
 
-- `--format json|table`
+- `--format json|table|text`
   - Output format. The default is `json`.
 - `--compact`
   - Emit compact JSON. Only supported with `--format json`.

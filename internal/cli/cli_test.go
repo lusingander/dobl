@@ -355,6 +355,88 @@ func TestRunSummaryTableIncludesWarningDetails(t *testing.T) {
 	}
 }
 
+func TestRunSummaryTextFormat(t *testing.T) {
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "summary", "--format", "text"}, strings.NewReader(strings.Join([]string{
+		"#1 [internal] load build definition from Dockerfile",
+		"#1 DONE 0.0s",
+		"#2 [1/1] RUN make build",
+		"#2 0.100 compiling",
+		"#2 ERROR: process failed",
+	}, "\n")), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	want := strings.Join([]string{
+		"Dobl Summary",
+		"Source: stdin",
+		"Steps: 2  Done: 1  Cached: 0  Warnings: 0  Errors: 1  Canceled: 0  Outputs: 1",
+		"",
+		"Timeline:",
+		"#1 D internal 0.0s | #2 E RUN",
+		"",
+		"Problems:",
+		"x  #2  ERROR  RUN  process failed",
+		"",
+		"Steps:",
+		"#1  DONE   0.0s  internal  [internal] load build definition from Dockerfile",
+		"#2  ERROR        RUN       RUN make build",
+		"",
+		"Problem Details:",
+		"#2 ERROR RUN make build",
+		"  Lines: 3-5",
+		"  Outputs:",
+		"    0.100 compiling",
+		"  Error:",
+		"    process failed",
+		"",
+	}, "\n")
+	if out.String() != want {
+		t.Fatalf("text output mismatch\n got:\n%s\nwant:\n%s", out.String(), want)
+	}
+}
+
+func TestRunSummaryTextWarningsFilter(t *testing.T) {
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "summary", "--warnings", "--format", "text"}, strings.NewReader("#1 WARNING: cache import failed\n#2 DONE 0.1s\n"), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	for _, want := range []string{
+		"Steps: 1",
+		"!  #1  WARNING",
+		"cache import failed",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("text output %q does not contain %q", output, want)
+		}
+	}
+	if strings.Contains(output, "#2") {
+		t.Fatalf("text output contains non-warning step: %q", output)
+	}
+}
+
+func TestRunSummaryTextRejectsJSONOnlyOptions(t *testing.T) {
+	tests := [][]string{
+		{"dobl", "summary", "--format", "text", "--events"},
+		{"dobl", "summary", "--format", "text", "--compact"},
+		{"dobl", "summary", "--format", "text", "--wide"},
+	}
+
+	for _, args := range tests {
+		t.Run(strings.Join(args, "_"), func(t *testing.T) {
+			var out bytes.Buffer
+			err := Run(args, strings.NewReader("#1 DONE 0.1s\n"), &out)
+			if err == nil {
+				t.Fatal("run returned nil error")
+			}
+		})
+	}
+}
+
 func TestRunSummaryFailedJSON(t *testing.T) {
 	var out bytes.Buffer
 	err := Run([]string{"dobl", "summary", "--failed"}, strings.NewReader(strings.Join([]string{

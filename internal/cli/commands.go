@@ -9,6 +9,7 @@ import (
 const (
 	formatJSON  = "json"
 	formatTable = "table"
+	formatText  = "text"
 )
 
 type parseCmd struct {
@@ -22,7 +23,7 @@ type summaryCmd struct {
 	Events      bool   `help:"Include source events in each step."`
 	Failed      bool   `help:"Only include failed steps."`
 	Warnings    bool   `help:"Only include warning steps."`
-	Format      string `default:"json" enum:"json,table" help:"Output format."`
+	Format      string `default:"json" enum:"json,table,text" help:"Output format."`
 	Status      string `placeholder:"STATUS" help:"Only include steps with this status. One of: DONE, CACHED, ERROR, CANCELED, WARNING, PROGRESS."`
 	Stage       string `placeholder:"STAGE" help:"Only include Dockerfile steps from this stage."`
 	Instruction string `placeholder:"INSTRUCTION" help:"Only include Dockerfile steps with this instruction."`
@@ -45,6 +46,7 @@ func (c *summaryCmd) Help() string {
 	return `Examples:
   dobl summary build.log
   dobl summary --format table build.log
+  dobl summary --format text build.log
   dobl summary --format table --wide build.log
   dobl summary --failed --format table build.log
   dobl summary --warnings --format table build.log
@@ -112,6 +114,8 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 		return encodeJSON(ctx.stdout, steps, c.Compact)
 	case formatTable:
 		return encodeSummaryTable(ctx.stdout, steps, c.Wide)
+	case formatText:
+		return encodeSummaryText(ctx.stdout, steps, inputSource(c.File))
 	default:
 		return fmt.Errorf("summary format %q is not supported", c.Format)
 	}
@@ -129,10 +133,7 @@ func (c *reportCmd) Run(ctx *runContext) error {
 	}
 
 	source := c.File
-	if source == "" || source == "-" {
-		source = "stdin"
-	}
-	return encodeHTMLReport(ctx.stdout, steps, source)
+	return encodeHTMLReport(ctx.stdout, steps, inputSource(source))
 }
 
 func (c *summaryCmd) validate() error {
@@ -151,15 +152,23 @@ func (c *summaryCmd) validate() error {
 	if c.Step != "" && !isValidStepID(c.Step) {
 		return fmt.Errorf("invalid step id %q", c.Step)
 	}
-	if c.Format == formatTable {
+	if c.Format != formatJSON {
 		if c.Events {
 			return fmt.Errorf("--events is only supported with --format=json")
 		}
 		if c.Compact {
 			return fmt.Errorf("--compact is only supported with --format=json")
 		}
-	} else if c.Wide {
+	}
+	if c.Wide && c.Format != formatTable {
 		return fmt.Errorf("--wide is only supported with --format=table")
 	}
 	return nil
+}
+
+func inputSource(fileName string) string {
+	if fileName == "" || fileName == "-" {
+		return "stdin"
+	}
+	return fileName
 }

@@ -35,6 +35,12 @@ Show a human-readable table:
 dobl summary --format table build.log
 ```
 
+Show a richer static terminal summary:
+
+```sh
+dobl summary --format text build.log
+```
+
 Generate a self-contained HTML report:
 
 ```sh
@@ -65,8 +71,23 @@ ID  STATUS  DURATION  STEP  INSTRUCTION  NAME                                   
 #3  ERROR             1/1   RUN          [1/1] RUN echo before && exit 1                             2        0         process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
 ```
 
+`dobl summary --format text testdata/error_plain.log`:
+
+```text
+Dobl Summary
+Source: testdata/error_plain.log
+Steps: 3  Done: 2  Cached: 0  Warnings: 0  Errors: 1  Canceled: 0  Outputs: 2
+
+Timeline:
+#1 D internal 0.0s | #2 D internal 0.4s | #3 E RUN
+
+Problems:
+x  #3  ERROR  RUN  process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
+```
+
 The default output format is JSON. Table output truncates long error details by
-default; use `--wide` to keep full error text.
+default; use `--wide` to keep full error text. Text output is a static
+terminal-friendly view for CI logs and local triage.
 
 Summary JSON is the stable input contract for downstream reports and
 visualizations. See [Output formats](docs/output.md) and the

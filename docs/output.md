@@ -145,6 +145,49 @@ Columns:
 - `DIAGNOSTIC`: error or warning detail. Long values are truncated unless
   `--wide` is used.
 
+## Summary Text
+
+`dobl summary --format text testdata/error_plain.log` emits a static rich text
+view intended for terminals, CI logs, and copy/paste debugging:
+
+```text
+Dobl Summary
+Source: testdata/error_plain.log
+Steps: 3  Done: 2  Cached: 0  Warnings: 0  Errors: 1  Canceled: 0  Outputs: 2
+
+Timeline:
+#1 D internal 0.0s | #2 D internal 0.4s | #3 E RUN
+
+Problems:
+x  #3  ERROR  RUN  process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
+
+Steps:
+#1  DONE   0.0s  internal  [internal] load build definition from Dockerfile
+#2  DONE   0.4s  internal  [internal] load metadata for docker.io/library/alpine:3.20
+#3  ERROR        RUN       RUN echo before && exit 1
+
+Problem Details:
+#3 ERROR RUN echo before && exit 1
+  Lines: 6-9
+  Outputs:
+    0.102 before
+    0.103 /bin/sh: exit: line 1: illegal number: 1
+  Error:
+    process "/bin/sh -c echo before && exit 1" did not complete successfully: exit code: 2
+```
+
+Sections:
+
+- `Dobl Summary`: source name and aggregate counts.
+- `Timeline`: compact first-seen step order. Status letters are `D` for
+  `DONE`, `C` for `CACHED`, `E` for `ERROR`, `X` for `CANCELED`, `W` for
+  `WARNING`, and `P` for `PROGRESS`.
+- `Problems`: `ERROR`, `CANCELED`, and `WARNING` steps, plus any step with
+  parsed error or warning detail.
+- `Steps`: all filtered steps in first-seen BuildKit order.
+- `Problem Details`: line ranges, output tails, and diagnostics for problem
+  steps.
+
 ## Static Viewer
 
 The static viewer in [`examples/viewer`](../examples/viewer) reads summary JSON
