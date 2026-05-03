@@ -2,6 +2,7 @@ package cli
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/lusingander/dobl"
@@ -69,6 +70,58 @@ func filterStepsByID(steps []dobl.Step, id string) []dobl.Step {
 		}
 	}
 	return filtered
+}
+
+func sortSteps(steps []dobl.Step, key string) {
+	sort.SliceStable(steps, func(i, j int) bool {
+		left := steps[i]
+		right := steps[j]
+		switch key {
+		case "duration":
+			if durationNanos(left) != durationNanos(right) {
+				return durationNanos(left) > durationNanos(right)
+			}
+		case "status":
+			if statusRank(left.Status) != statusRank(right.Status) {
+				return statusRank(left.Status) < statusRank(right.Status)
+			}
+		case "outputs":
+			if left.OutputCount != right.OutputCount {
+				return left.OutputCount > right.OutputCount
+			}
+		case "warnings":
+			if left.WarningCount != right.WarningCount {
+				return left.WarningCount > right.WarningCount
+			}
+		}
+		return left.Order < right.Order
+	})
+}
+
+func durationNanos(step dobl.Step) int64 {
+	if step.DurationNanos == nil {
+		return -1
+	}
+	return *step.DurationNanos
+}
+
+func statusRank(status dobl.EventStatus) int {
+	switch status {
+	case dobl.EventStatusError:
+		return 0
+	case dobl.EventStatusCanceled:
+		return 1
+	case dobl.EventStatusWarning:
+		return 2
+	case dobl.EventStatusProgress:
+		return 3
+	case dobl.EventStatusDone:
+		return 4
+	case dobl.EventStatusCached:
+		return 5
+	default:
+		return 6
+	}
 }
 
 func normalizeStepID(id string) string {

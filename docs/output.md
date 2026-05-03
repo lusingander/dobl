@@ -78,7 +78,9 @@ Compatibility rules:
 - Fields tagged with `omitempty` are absent when the parser has no value for
   them.
 - Array order is meaningful. Steps are emitted in first-seen BuildKit step ID
-  order, which is also stored in `order`.
+  order by default, which is also stored in `order`. The `summary --sort`
+  option changes output array order, but preserves each step's original
+  `order` value.
 - `events` is intentionally omitted by default to keep summary output compact.
   Use `dobl summary --events` when event-level replay or debugging is needed.
 
@@ -145,6 +147,8 @@ Columns:
 - `DIAGNOSTIC`: error or warning detail. Long values are truncated unless
   `--wide` is used.
 
+`summary --sort KEY` also applies to table output.
+
 ## Summary Text
 
 `dobl summary --format text testdata/error_plain.log` emits a static rich text
@@ -187,6 +191,9 @@ Sections:
 - `Steps`: all filtered steps in first-seen BuildKit order.
 - `Problem Details`: line ranges, output tails, and diagnostics for problem
   steps.
+
+`summary --sort KEY` also applies to text output. The supported keys are
+`order`, `duration`, `status`, `outputs`, and `warnings`.
 
 ## Static Viewer
 

@@ -555,6 +555,59 @@ func TestRunSummaryStatusTable(t *testing.T) {
 	}
 }
 
+func TestRunSummarySortDurationJSON(t *testing.T) {
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "summary", "--sort", "duration", "--compact"}, strings.NewReader(strings.Join([]string{
+		"#1 [1/3] RUN fast",
+		"#1 DONE 0.1s",
+		"#2 [2/3] RUN slow",
+		"#2 DONE 1.5s",
+		"#3 [3/3] RUN missing-duration",
+		"#3 DONE",
+	}, "\n")), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	var decoded []struct {
+		ID       string `json:"id"`
+		Duration string `json:"duration"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &decoded); err != nil {
+		t.Fatalf("invalid json output: %v", err)
+	}
+	got := []string{decoded[0].ID, decoded[1].ID, decoded[2].ID}
+	want := []string{"#2", "#1", "#3"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("sorted ids = %v, want %v", got, want)
+	}
+}
+
+func TestRunSummarySortStatusText(t *testing.T) {
+	var out bytes.Buffer
+	err := Run([]string{"dobl", "summary", "--sort", "status", "--format", "text"}, strings.NewReader(strings.Join([]string{
+		"#1 DONE 0.1s",
+		"#2 WARNING: cache import failed",
+		"#3 ERROR: failed",
+		"#4 CACHED",
+	}, "\n")), &out)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	output := out.String()
+	errorIndex := strings.Index(output, "#3  ERROR")
+	warningIndex := strings.Index(output, "#2  WARNING")
+	doneIndex := strings.Index(output, "#1  DONE")
+	cachedIndex := strings.Index(output, "#4  CACHED")
+	if errorIndex < 0 || warningIndex < 0 || doneIndex < 0 || cachedIndex < 0 {
+		t.Fatalf("text output missing sorted steps: %q", output)
+	}
+	if !(errorIndex < warningIndex && warningIndex < doneIndex && doneIndex < cachedIndex) {
+		t.Fatalf("status sort order is wrong: %q", output)
+	}
+}
+
 func TestRunSummaryStageFilterJSON(t *testing.T) {
 	var out bytes.Buffer
 	err := Run([]string{"dobl", "summary", "--stage", "build"}, strings.NewReader(strings.Join([]string{

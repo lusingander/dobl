@@ -57,6 +57,7 @@ dobl summary --failed --format table build.log
 dobl summary --failed --format text build.log
 dobl summary --warnings --format table build.log
 dobl summary --status ERROR build.log
+dobl summary --sort duration --format text build.log
 dobl summary --stage build --instruction RUN build.log
 dobl summary --step '#3' build.log
 ```
@@ -87,6 +88,11 @@ Flags:
 - `--step ID`
   - Include only a specific BuildKit step ID. Both `#3` and `3` are accepted.
   - Malformed IDs such as `abc` are rejected.
+- `--sort KEY`
+  - Sort steps. The default is `order`.
+  - Supported keys: `order`, `duration`, `status`, `outputs`, `warnings`.
+  - `duration`, `outputs`, and `warnings` sort descending. `status` sorts
+    problem statuses first.
 - `--wide`
   - Do not truncate table error details. Only supported with `--format table`.
 - `-h`, `--help`

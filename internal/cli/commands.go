@@ -30,6 +30,7 @@ type summaryCmd struct {
 	Stage       string `placeholder:"STAGE" help:"Only include Dockerfile steps from this stage."`
 	Instruction string `placeholder:"INSTRUCTION" help:"Only include Dockerfile steps with this instruction."`
 	Step        string `placeholder:"ID" help:"Only include a specific BuildKit step ID, such as #3 or 3."`
+	Sort        string `default:"order" placeholder:"KEY" enum:"order,duration,status,outputs,warnings" help:"Sort steps. One of: order, duration, status, outputs, warnings."`
 	Wide        bool   `help:"Do not truncate table error details."`
 	File        string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
 }
@@ -55,6 +56,7 @@ func (c *summaryCmd) Help() string {
   dobl summary --failed --format table build.log
   dobl summary --warnings --format table build.log
   dobl summary --status ERROR build.log
+  dobl summary --sort status --format text build.log
   dobl summary --stage build --instruction RUN build.log
   dobl summary --step '#3' build.log`
 }
@@ -108,6 +110,9 @@ func (c *summaryCmd) Run(ctx *runContext) error {
 	}
 	if c.Step != "" {
 		steps = filterStepsByID(steps, normalizeStepID(c.Step))
+	}
+	if c.Sort != "" {
+		sortSteps(steps, c.Sort)
 	}
 	if !c.Events {
 		for i := range steps {

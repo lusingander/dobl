@@ -41,6 +41,12 @@ Show a richer static terminal summary:
 dobl summary --format text build.log
 ```
 
+Sort the summary for triage:
+
+```sh
+dobl summary --sort duration --format text build.log
+```
+
 Generate a self-contained HTML report:
 
 ```sh
