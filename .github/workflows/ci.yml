@@ -38,8 +38,5 @@ jobs:
       - name: Install Playwright browser
         run: task browser:install
 
-      - name: Install pinact
-        run: task pinact:install
-
       - name: Build, lint, and test
         run: task ci

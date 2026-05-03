@@ -76,6 +76,12 @@ tasks:
     cmds:
       - pinact run --verify
 
+  actions:check:
+    desc: Check GitHub Actions pinning when workflow files change.
+    cmds:
+      - task: pinact:check
+      - task: pinact:verify
+
   lint:
     desc: Run lint and static checks.
     cmds:
@@ -83,8 +89,6 @@ tasks:
       - task: vet
       - task: json:check
       - task: viewer:check
-      - task: pinact:check
-      - task: pinact:verify
 
   npm:install:
     desc: Install Node dependencies from the lockfile.

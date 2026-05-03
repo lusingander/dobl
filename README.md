@@ -126,6 +126,7 @@ task test
 task lint
 task browser:test
 task generate
+task actions:check
 ```
 
 Install Node and browser dependencies before running browser checks locally:
