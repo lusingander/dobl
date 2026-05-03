@@ -103,7 +103,7 @@ func TestRunCommandHelp(t *testing.T) {
 		{
 			name: "tui",
 			args: []string{"dobl", "tui", "--help"},
-			want: []string{"Usage: dobl tui", "dobl tui build.log", "dobl tui"},
+			want: []string{"Usage: dobl tui", "dobl tui build.log", "dobl tui --summary summary.json"},
 		},
 	}
 
@@ -122,6 +122,60 @@ func TestRunCommandHelp(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestLoadTUIStepsFromPlainLog(t *testing.T) {
+	input := strings.NewReader("#1 [internal] load build definition from Dockerfile\n#1 DONE 0.1s\n")
+
+	steps, source, err := loadTUISteps("", "", input)
+	if err != nil {
+		t.Fatalf("load TUI steps returned error: %v", err)
+	}
+
+	if source != "stdin" {
+		t.Fatalf("source = %q, want stdin", source)
+	}
+	if len(steps) != 1 {
+		t.Fatalf("step count = %d, want 1", len(steps))
+	}
+	if steps[0].ID != "#1" || steps[0].Status != "DONE" {
+		t.Fatalf("unexpected step: %+v", steps[0])
+	}
+	if steps[0].Events != nil {
+		t.Fatalf("events = %#v, want nil", steps[0].Events)
+	}
+}
+
+func TestLoadTUIStepsFromSummaryJSON(t *testing.T) {
+	input := strings.NewReader(`[{"id":"#2","order":1,"status":"ERROR","events":[{"line":1,"kind":"step_status","raw":"#2 ERROR"}]}]`)
+
+	steps, source, err := loadTUISteps("", "-", input)
+	if err != nil {
+		t.Fatalf("load TUI steps returned error: %v", err)
+	}
+
+	if source != "stdin" {
+		t.Fatalf("source = %q, want stdin", source)
+	}
+	if len(steps) != 1 {
+		t.Fatalf("step count = %d, want 1", len(steps))
+	}
+	if steps[0].ID != "#2" || steps[0].Status != "ERROR" {
+		t.Fatalf("unexpected step: %+v", steps[0])
+	}
+	if steps[0].Events != nil {
+		t.Fatalf("events = %#v, want nil", steps[0].Events)
+	}
+}
+
+func TestLoadTUIStepsRejectsSummaryAndLogFile(t *testing.T) {
+	_, _, err := loadTUISteps("build.log", "summary.json", strings.NewReader(""))
+	if err == nil {
+		t.Fatalf("load TUI steps returned nil error")
+	}
+	if !strings.Contains(err.Error(), "--summary and build log file cannot be used together") {
+		t.Fatalf("error = %q", err)
 	}
 }
 

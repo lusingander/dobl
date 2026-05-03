@@ -49,6 +49,12 @@ Produce JSON for other tools:
 dobl summary --compact build.log > summary.json
 ```
 
+The TUI can also read that summary JSON:
+
+```sh
+dobl tui --summary summary.json
+```
+
 For all commands, flags, filters, and output modes, see the
 [CLI reference](docs/cli.md).
 

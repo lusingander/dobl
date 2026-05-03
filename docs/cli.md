@@ -151,12 +151,16 @@ Examples:
 
 ```sh
 dobl tui build.log
+dobl summary --compact build.log > summary.json
+dobl tui --summary summary.json
 docker buildx build --progress=plain . 2>&1 | dobl tui
 ```
 
 The TUI uses the same parsed step summary model as `dobl summary --format json`.
-It starts with completed, non-streaming logs. When input is read from stdin,
-stdin is consumed as the build log and keyboard input is read from the terminal.
+It starts with completed, non-streaming logs. Use `--summary` to inspect an
+existing summary JSON file instead of parsing a build log. When input is read
+from stdin, stdin is consumed as the build log or summary JSON and keyboard
+input is read from the terminal.
 
 Keyboard controls:
 
@@ -176,6 +180,9 @@ Keyboard controls:
 
 Flags:
 
+- `--summary FILE`
+  - Read summary JSON from this file instead of parsing a plain build log.
+  - Use `--summary -` to read summary JSON from stdin.
 - `-h`, `--help`
   - Show command help.
 
