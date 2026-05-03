@@ -101,6 +101,15 @@ Regenerate the checked-in static viewer after editing
 task generate
 ```
 
+GitHub Actions references are pinned to full commit SHAs with `pinact`:
+
+```sh
+task pinact:install
+task pinact:update
+task pinact:check
+task pinact:verify
+```
+
 ## Documentation
 
 - [CLI reference](docs/cli.md)

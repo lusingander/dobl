@@ -2,6 +2,7 @@ version: '3'
 
 vars:
   GOCACHE: '{{.GOCACHE | default "/tmp/dobl-go-build"}}'
+  PINACT_VERSION: v3.9.0
 
 tasks:
   default:
@@ -55,6 +56,26 @@ tasks:
     cmds:
       - sed -n '/<script>/,/<\/script>/p' internal/cli/viewer.html | sed '1d;$d' | node --check
 
+  pinact:install:
+    desc: Install pinact.
+    cmds:
+      - go install github.com/suzuki-shunsuke/pinact/v3/cmd/pinact@{{.PINACT_VERSION}}
+
+  pinact:update:
+    desc: Pin GitHub Actions references to full commit SHAs.
+    cmds:
+      - pinact run
+
+  pinact:check:
+    desc: Check GitHub Actions references are pinned.
+    cmds:
+      - pinact run --check
+
+  pinact:verify:
+    desc: Verify pinact version annotations match pinned SHAs.
+    cmds:
+      - pinact run --verify
+
   lint:
     desc: Run lint and static checks.
     cmds:
@@ -62,6 +83,8 @@ tasks:
       - task: vet
       - task: json:check
       - task: viewer:check
+      - task: pinact:check
+      - task: pinact:verify
 
   npm:install:
     desc: Install Node dependencies from the lockfile.
