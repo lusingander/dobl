@@ -126,6 +126,10 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case "tab":
 		m.toggleFocus()
+	case "enter", "right":
+		m.focus = FocusDetails
+	case "backspace", "ctrl+h", "left":
+		m.focus = FocusSteps
 	case "j", "down":
 		if m.focus == FocusDetails {
 			m.scrollDetail(1)

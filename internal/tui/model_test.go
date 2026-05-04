@@ -249,6 +249,30 @@ func TestUpdateTabFocusMakesJKScrollDetails(t *testing.T) {
 	}
 }
 
+func TestUpdateDirectionalFocusShortcuts(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyRight})
+	if model.focus != FocusDetails {
+		t.Fatalf("focus = %s, want details", model.focus)
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyLeft})
+	if model.focus != FocusSteps {
+		t.Fatalf("focus = %s, want steps", model.focus)
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+	if model.focus != FocusDetails {
+		t.Fatalf("focus = %s, want details after enter", model.focus)
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyBackspace})
+	if model.focus != FocusSteps {
+		t.Fatalf("focus = %s, want steps after backspace", model.focus)
+	}
+}
+
 func TestValidateTerminalOutputAllowsCustomWriter(t *testing.T) {
 	if err := validateTerminalOutput(&bytes.Buffer{}); err != nil {
 		t.Fatalf("validate terminal output returned error for custom writer: %v", err)
@@ -334,6 +358,18 @@ func TestPanelTitlesShowFocusedPane(t *testing.T) {
 	model.focus = FocusDetails
 	if got := strings.Split(model.detailView(40, 4), "\n")[0]; got != "Details #1 DONE *" {
 		t.Fatalf("detail title = %q, want focused marker", got)
+	}
+}
+
+func TestHelpViewFollowsFocusedPane(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+	if got := model.helpView(120); !strings.Contains(got, "enter/right details") {
+		t.Fatalf("steps help = %q, want detail focus shortcut", got)
+	}
+
+	model.focus = FocusDetails
+	if got := model.helpView(120); !strings.Contains(got, "left/backspace steps") {
+		t.Fatalf("details help = %q, want steps focus shortcut", got)
 	}
 }
 

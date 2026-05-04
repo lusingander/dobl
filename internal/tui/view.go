@@ -264,7 +264,10 @@ func (m Model) detailTitle() string {
 }
 
 func (m Model) helpView(width int) string {
-	mode := fmt.Sprintf("focus:%s  tab focus  j/k move/scroll  n/N problem  f filter  p problems  r reset  / search  q quit", m.focus)
+	mode := "steps: j/k move  enter/right details  n/N problem  f filter  p problems  r reset  / search  q quit"
+	if m.focus == FocusDetails {
+		mode = "details: j/k scroll  left/backspace steps  pgup/pgdown page  tab focus  / search  q quit"
+	}
 	if m.searching {
 		mode = "type to search  enter apply  esc close  ctrl+c quit"
 	}
