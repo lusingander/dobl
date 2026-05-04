@@ -161,8 +161,24 @@ func detailLines(step dobl.Step) []string {
 	lines := []string{"Details",
 		fmt.Sprintf("%s %s", step.ID, statusText(step.Status)),
 		fmt.Sprintf("Step: %s", firstNonEmpty(step.DisplayName, step.Name, "(unnamed)")),
-		fmt.Sprintf("Category: %s", firstNonEmpty(string(step.Category), "other")),
 	}
+
+	if step.ErrorDetail != "" || step.WarningDetail != "" {
+		lines = append(lines, "", "Diagnostic")
+		if step.ErrorDetail != "" {
+			lines = append(lines, fmt.Sprintf("Error: %s", step.ErrorDetail))
+		}
+		if step.WarningDetail != "" {
+			lines = append(lines, fmt.Sprintf("Warning: %s", step.WarningDetail))
+		}
+	}
+	if len(step.OutputTail) > 0 {
+		lines = append(lines, "", fmt.Sprintf("Output tail (%d)", len(step.OutputTail)))
+		lines = append(lines, step.OutputTail...)
+	}
+
+	lines = append(lines, "", "Metadata")
+	lines = append(lines, fmt.Sprintf("Category: %s", firstNonEmpty(string(step.Category), "other")))
 	if step.Duration != "" {
 		lines = append(lines, fmt.Sprintf("Duration: %s", step.Duration))
 	}
@@ -174,16 +190,6 @@ func detailLines(step dobl.Step) []string {
 	}
 	if linesText := lineRange(step); linesText != "" {
 		lines = append(lines, fmt.Sprintf("Lines: %s", linesText))
-	}
-	if step.ErrorDetail != "" {
-		lines = append(lines, "", "Error:", step.ErrorDetail)
-	}
-	if step.WarningDetail != "" {
-		lines = append(lines, "", "Warning:", step.WarningDetail)
-	}
-	if len(step.OutputTail) > 0 {
-		lines = append(lines, "", "Output tail:")
-		lines = append(lines, step.OutputTail...)
 	}
 	return lines
 }

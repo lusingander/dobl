@@ -283,15 +283,19 @@ func TestDetailLinesIncludesDiagnosticsAndOutputTail(t *testing.T) {
 	for _, want := range []string{
 		"Details",
 		"#4 ERROR",
-		"Instruction: RUN",
-		"Error:",
-		"process did not complete successfully",
-		"Output tail:",
+		"Diagnostic",
+		"Error: process did not complete successfully",
+		"Output tail (2)",
 		"missing dependency",
+		"Metadata",
+		"Instruction: RUN",
 	} {
 		if !strings.Contains(lines, want) {
 			t.Fatalf("detail lines %q do not contain %q", lines, want)
 		}
+	}
+	if strings.Index(lines, "Diagnostic") > strings.Index(lines, "Metadata") {
+		t.Fatalf("detail lines put metadata before diagnostics: %q", lines)
 	}
 }
 
