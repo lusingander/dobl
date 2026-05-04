@@ -82,6 +82,22 @@ func problemMarker(step dobl.Step) string {
 	}
 }
 
+func statusMarker(step dobl.Step) string {
+	if isProblemStep(step) {
+		return problemMarker(step)
+	}
+	switch step.Status {
+	case dobl.EventStatusDone:
+		return "."
+	case dobl.EventStatusCached:
+		return "="
+	case dobl.EventStatusProgress:
+		return "~"
+	default:
+		return " "
+	}
+}
+
 func stepLabel(step dobl.Step) string {
 	if step.Instruction != "" {
 		return step.Instruction

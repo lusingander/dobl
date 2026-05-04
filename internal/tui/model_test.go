@@ -326,13 +326,28 @@ func TestTimelineViewMarksSelectedAndProblemSteps(t *testing.T) {
 
 func TestPanelTitlesShowFocusedPane(t *testing.T) {
 	model := NewModel(sampleSteps(), "test.log")
-	if got := strings.Split(model.listView(40, 4), "\n")[0]; got != "Steps *" {
+	if got := strings.Split(model.listView(40, 4), "\n")[0]; got != "Steps (4/4) *" {
 		t.Fatalf("list title = %q, want focused marker", got)
 	}
 
 	model.focus = FocusDetails
-	if got := strings.Split(model.detailView(40, 4), "\n")[0]; got != "Details *" {
+	if got := strings.Split(model.detailView(40, 4), "\n")[0]; got != "Details #1 DONE *" {
 		t.Fatalf("detail title = %q, want focused marker", got)
+	}
+}
+
+func TestListViewShowsStatusMarkers(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+	view := model.listView(80, 6)
+	for _, want := range []string{
+		"> . #1   DONE",
+		"  = #2   CACHED",
+		"  ! #3   WARNING",
+		"  x #4   ERROR",
+	} {
+		if !strings.Contains(view, want) {
+			t.Fatalf("list view %q does not contain %q", view, want)
+		}
 	}
 }
 

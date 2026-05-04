@@ -104,7 +104,7 @@ func (m Model) timelineView(width int) string {
 }
 
 func (m Model) listView(width int, height int) string {
-	title := "Steps"
+	title := fmt.Sprintf("Steps (%d/%d)", len(m.visible), len(m.steps))
 	if m.focus == FocusSteps {
 		title += " *"
 	}
@@ -121,9 +121,10 @@ func (m Model) listView(width int, height int) string {
 	}
 	for i := start; i < end; i++ {
 		step := m.visible[i]
-		prefix := "  "
+		marker := statusMarker(step)
+		prefix := fmt.Sprintf("  %s ", marker)
 		if i == m.selected {
-			prefix = "> "
+			prefix = fmt.Sprintf("> %s ", marker)
 		}
 		line := fmt.Sprintf("%s%-4s %-8s %-8s %s", prefix, step.ID, statusText(step.Status), stepLabel(step), step.DisplayName)
 		if i == m.selected {
@@ -196,6 +197,10 @@ func detailLines(step dobl.Step) []string {
 
 func (m Model) detailTitle() string {
 	title := "Details"
+	if len(m.visible) > 0 {
+		step := m.visible[m.selected]
+		title = fmt.Sprintf("Details %s %s", step.ID, statusText(step.Status))
+	}
 	if m.focus == FocusDetails {
 		title += " *"
 	}
