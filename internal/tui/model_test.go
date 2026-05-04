@@ -337,6 +337,18 @@ func TestViewHandlesEmptyAndNarrowScreens(t *testing.T) {
 	}
 }
 
+func TestEmptyViewExplainsFilterAndSearch(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+	model.filter = FilterFailed
+	model.search = "copy"
+	model.refreshVisible()
+
+	view := model.View()
+	if want := `No steps match filter failed and search "copy"`; !strings.Contains(view, want) {
+		t.Fatalf("view %q does not contain %q", view, want)
+	}
+}
+
 func TestTimelineViewMarksSelectedAndProblemSteps(t *testing.T) {
 	model := NewModel(sampleSteps(), "test.log")
 	model.selected = 2

@@ -166,7 +166,7 @@ func (m Model) listView(width int, height int) string {
 	}
 	lines := []string{title}
 	if len(m.visible) == 0 {
-		lines = append(lines, "(none)")
+		lines = append(lines, m.emptyMessage())
 		return padBlock(lines, width, height)
 	}
 
@@ -194,7 +194,7 @@ func (m Model) listView(width int, height int) string {
 
 func (m Model) detailView(width int, height int) string {
 	if len(m.visible) == 0 {
-		return padBlock([]string{m.detailTitle(), "(none)"}, width, height)
+		return padBlock([]string{m.detailTitle(), m.emptyMessage()}, width, height)
 	}
 
 	step := m.visible[m.selected]
@@ -261,6 +261,19 @@ func (m Model) detailTitle() string {
 		title += " *"
 	}
 	return title
+}
+
+func (m Model) emptyMessage() string {
+	if m.search != "" && m.filter != FilterAll {
+		return fmt.Sprintf("No steps match filter %s and search %q", m.filter, m.search)
+	}
+	if m.search != "" {
+		return fmt.Sprintf("No steps match search %q", m.search)
+	}
+	if m.filter != FilterAll {
+		return fmt.Sprintf("No steps match filter %s", m.filter)
+	}
+	return "(none)"
 }
 
 func (m Model) helpView(width int) string {
