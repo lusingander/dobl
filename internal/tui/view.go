@@ -30,11 +30,7 @@ func (m Model) View() string {
 
 	var body string
 	if width >= 82 {
-		listWidth := width / 2
-		if listWidth < minPaneWidth {
-			listWidth = minPaneWidth
-		}
-		detailWidth := width - listWidth - 2
+		listWidth, detailWidth := paneWidths(width)
 		body = lipgloss.JoinHorizontal(
 			lipgloss.Top,
 			m.listView(listWidth, bodyHeight),
@@ -50,6 +46,28 @@ func (m Model) View() string {
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left, header, timeline, body, help)
+}
+
+func paneWidths(width int) (int, int) {
+	listWidth := width * 2 / 5
+	if listWidth < 34 {
+		listWidth = 34
+	}
+	if listWidth > 56 {
+		listWidth = 56
+	}
+	if listWidth < minPaneWidth {
+		listWidth = minPaneWidth
+	}
+	detailWidth := width - listWidth - 2
+	if detailWidth < minPaneWidth {
+		detailWidth = minPaneWidth
+		listWidth = width - detailWidth - 2
+		if listWidth < minPaneWidth {
+			listWidth = minPaneWidth
+		}
+	}
+	return listWidth, detailWidth
 }
 
 func (m Model) headerView(width int) string {

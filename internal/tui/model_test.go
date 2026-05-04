@@ -337,6 +337,24 @@ func TestViewHandlesEmptyAndNarrowScreens(t *testing.T) {
 	}
 }
 
+func TestPaneWidthsFavorDetails(t *testing.T) {
+	listWidth, detailWidth := paneWidths(120)
+	if listWidth != 48 {
+		t.Fatalf("list width = %d, want 48", listWidth)
+	}
+	if detailWidth != 70 {
+		t.Fatalf("detail width = %d, want 70", detailWidth)
+	}
+
+	listWidth, detailWidth = paneWidths(180)
+	if listWidth != 56 {
+		t.Fatalf("wide list width = %d, want capped width 56", listWidth)
+	}
+	if detailWidth != 122 {
+		t.Fatalf("wide detail width = %d, want 122", detailWidth)
+	}
+}
+
 func TestEmptyViewExplainsFilterAndSearch(t *testing.T) {
 	model := NewModel(sampleSteps(), "test.log")
 	model.filter = FilterFailed
