@@ -330,9 +330,26 @@ func TestViewHandlesEmptyAndNarrowScreens(t *testing.T) {
 	model.height = 12
 
 	view := model.View()
-	for _, want := range []string{"Dobl TUI", "Timeline: (none)", "Steps", "(none)", "Details"} {
+	for _, want := range []string{"Dobl TUI", "Steps 0", "Timeline: (none)", "Steps", "(none)", "Details"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("view %q does not contain %q", view, want)
+		}
+	}
+}
+
+func TestHeaderViewSummarizesProblemsAndScope(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+	model.filter = FilterProblems
+	model.search = "run"
+
+	header := model.headerView(120)
+	for _, want := range []string{
+		"Dobl TUI  test.log",
+		"Steps 4  OK 1  Cached 1  Problems 2  Outputs 2  (x1 !1 -0)",
+		`Filter problems  Search "run"`,
+	} {
+		if !strings.Contains(header, want) {
+			t.Fatalf("header %q does not contain %q", header, want)
 		}
 	}
 }

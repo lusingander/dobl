@@ -72,27 +72,40 @@ func paneWidths(width int) (int, int) {
 
 func (m Model) headerView(width int) string {
 	stats := collectStats(m.steps)
-	filterText := fmt.Sprintf("Filter: %s", m.filter)
-	searchText := "Search: -"
-	if m.search != "" {
-		searchText = fmt.Sprintf("Search: %q", m.search)
-	}
-	if m.searching {
-		searchText += "_"
-	}
-
-	line := fmt.Sprintf(
-		"Dobl TUI  Source: %s\nSteps: %d  Done: %d  Cached: %d  Warnings: %d  Errors: %d  Canceled: %d  Outputs: %d  %s  %s",
-		m.source,
+	problems := stats.Errors + stats.Canceled + stats.Warnings
+	statusText := fmt.Sprintf(
+		"Steps %d  OK %d  Cached %d  Problems %d  Outputs %d",
 		stats.Total,
 		stats.Done,
 		stats.Cached,
-		stats.Warnings,
-		stats.Errors,
-		stats.Canceled,
+		problems,
 		stats.Outputs,
-		filterText,
-		searchText,
+	)
+	if problems > 0 {
+		statusText = fmt.Sprintf(
+			"%s  (x%d !%d -%d)",
+			statusText,
+			stats.Errors,
+			stats.Warnings,
+			stats.Canceled,
+		)
+	}
+
+	scopeText := fmt.Sprintf("Filter %s", m.filter)
+	if m.search != "" {
+		scopeText += fmt.Sprintf("  Search %q", m.search)
+	} else {
+		scopeText += "  Search -"
+	}
+	if m.searching {
+		scopeText += "_"
+	}
+
+	line := fmt.Sprintf(
+		"Dobl TUI  %s\n%s\n%s",
+		m.source,
+		statusText,
+		scopeText,
 	)
 	return trimBlock(line, width)
 }
