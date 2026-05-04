@@ -252,34 +252,40 @@ func detailLines(step dobl.Step) []string {
 	}
 
 	if step.ErrorDetail != "" || step.WarningDetail != "" {
-		lines = append(lines, "", "Diagnostic")
+		lines = append(lines, "", sectionTitle("Diagnostic"))
 		if step.ErrorDetail != "" {
-			lines = append(lines, fmt.Sprintf("Error: %s", step.ErrorDetail))
+			lines = append(lines, fmt.Sprintf("  Error: %s", step.ErrorDetail))
 		}
 		if step.WarningDetail != "" {
-			lines = append(lines, fmt.Sprintf("Warning: %s", step.WarningDetail))
+			lines = append(lines, fmt.Sprintf("  Warning: %s", step.WarningDetail))
 		}
 	}
 	if len(step.OutputTail) > 0 {
-		lines = append(lines, "", fmt.Sprintf("Output tail (%d)", len(step.OutputTail)))
-		lines = append(lines, step.OutputTail...)
+		lines = append(lines, "", sectionTitle(fmt.Sprintf("Output tail (%d)", len(step.OutputTail))))
+		for _, output := range step.OutputTail {
+			lines = append(lines, "  "+output)
+		}
 	}
 
-	lines = append(lines, "", "Metadata")
-	lines = append(lines, fmt.Sprintf("Category: %s", firstNonEmpty(string(step.Category), "other")))
+	lines = append(lines, "", sectionTitle("Metadata"))
+	lines = append(lines, fmt.Sprintf("  Category: %s", firstNonEmpty(string(step.Category), "other")))
 	if step.Duration != "" {
-		lines = append(lines, fmt.Sprintf("Duration: %s", step.Duration))
+		lines = append(lines, fmt.Sprintf("  Duration: %s", step.Duration))
 	}
 	if step.Instruction != "" {
-		lines = append(lines, fmt.Sprintf("Instruction: %s", step.Instruction))
+		lines = append(lines, fmt.Sprintf("  Instruction: %s", step.Instruction))
 	}
 	if index := formatStepIndex(step); index != "" {
-		lines = append(lines, fmt.Sprintf("Dockerfile: %s", index))
+		lines = append(lines, fmt.Sprintf("  Dockerfile: %s", index))
 	}
 	if linesText := lineRange(step); linesText != "" {
-		lines = append(lines, fmt.Sprintf("Lines: %s", linesText))
+		lines = append(lines, fmt.Sprintf("  Lines: %s", linesText))
 	}
 	return lines
+}
+
+func sectionTitle(title string) string {
+	return "-- " + title
 }
 
 func (m Model) detailTitle() string {
