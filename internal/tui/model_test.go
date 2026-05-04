@@ -222,6 +222,32 @@ func TestUpdateDetailScrollResetsWhenSelectionChanges(t *testing.T) {
 	}
 }
 
+func TestUpdateTabFocusMakesJKScrollDetails(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyTab})
+	if model.focus != FocusDetails {
+		t.Fatalf("focus = %s, want details", model.focus)
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyDown})
+	if model.selected != 0 {
+		t.Fatalf("selected = %d, want unchanged", model.selected)
+	}
+	if model.detailTop != 1 {
+		t.Fatalf("detailTop = %d, want 1", model.detailTop)
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyTab})
+	if model.focus != FocusSteps {
+		t.Fatalf("focus = %s, want steps", model.focus)
+	}
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyDown})
+	if model.selected != 1 {
+		t.Fatalf("selected = %d, want 1", model.selected)
+	}
+}
+
 func TestValidateTerminalOutputAllowsCustomWriter(t *testing.T) {
 	if err := validateTerminalOutput(&bytes.Buffer{}); err != nil {
 		t.Fatalf("validate terminal output returned error for custom writer: %v", err)
@@ -275,10 +301,42 @@ func TestViewHandlesEmptyAndNarrowScreens(t *testing.T) {
 	model.height = 12
 
 	view := model.View()
-	for _, want := range []string{"Dobl TUI", "Steps", "(none)", "Details"} {
+	for _, want := range []string{"Dobl TUI", "Timeline: (none)", "Steps", "(none)", "Details"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("view %q does not contain %q", view, want)
 		}
+	}
+}
+
+func TestTimelineViewMarksSelectedAndProblemSteps(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+	model.selected = 2
+
+	timeline := model.timelineView(80)
+	for _, want := range []string{"Timeline:", "#1D", "#2C", "[!#3W]", "x#4E"} {
+		if !strings.Contains(timeline, want) {
+			t.Fatalf("timeline %q does not contain %q", timeline, want)
+		}
+	}
+}
+
+func TestPanelTitlesShowFocusedPane(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+	if got := strings.Split(model.listView(40, 4), "\n")[0]; got != "Steps *" {
+		t.Fatalf("list title = %q, want focused marker", got)
+	}
+
+	model.focus = FocusDetails
+	if got := strings.Split(model.detailView(40, 4), "\n")[0]; got != "Details *" {
+		t.Fatalf("detail title = %q, want focused marker", got)
+	}
+}
+
+func TestTimelineViewTrimsToWidth(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+	timeline := model.timelineView(18)
+	if got := lipgloss.Width(timeline); got > 18 {
+		t.Fatalf("timeline width = %d, want <= 18: %q", got, timeline)
 	}
 }
 

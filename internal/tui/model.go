@@ -30,11 +30,19 @@ type Model struct {
 	filter    FilterMode
 	search    string
 	searching bool
+	focus     Focus
 	selected  int
 	detailTop int
 	width     int
 	height    int
 }
+
+type Focus int
+
+const (
+	FocusSteps Focus = iota
+	FocusDetails
+)
 
 func NewModel(steps []dobl.Step, source string) Model {
 	m := Model{
@@ -116,10 +124,20 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "ctrl+c":
 		return m, tea.Quit
+	case "tab":
+		m.toggleFocus()
 	case "j", "down":
-		m.move(1)
+		if m.focus == FocusDetails {
+			m.scrollDetail(1)
+		} else {
+			m.move(1)
+		}
 	case "k", "up":
-		m.move(-1)
+		if m.focus == FocusDetails {
+			m.scrollDetail(-1)
+		} else {
+			m.move(-1)
+		}
 	case "g", "home":
 		m.selected = 0
 		m.detailTop = 0
@@ -230,4 +248,19 @@ func (m *Model) moveProblem(direction int) {
 	}
 	m.selected = next
 	m.detailTop = 0
+}
+
+func (m *Model) toggleFocus() {
+	if m.focus == FocusDetails {
+		m.focus = FocusSteps
+		return
+	}
+	m.focus = FocusDetails
+}
+
+func (f Focus) String() string {
+	if f == FocusDetails {
+		return "details"
+	}
+	return "steps"
 }

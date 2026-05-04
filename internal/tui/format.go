@@ -44,6 +44,44 @@ func statusText(status dobl.EventStatus) string {
 	return string(status)
 }
 
+func statusShort(status dobl.EventStatus) string {
+	switch status {
+	case dobl.EventStatusDone:
+		return "D"
+	case dobl.EventStatusCached:
+		return "C"
+	case dobl.EventStatusError:
+		return "E"
+	case dobl.EventStatusCanceled:
+		return "X"
+	case dobl.EventStatusWarning:
+		return "W"
+	case dobl.EventStatusProgress:
+		return "P"
+	default:
+		return "?"
+	}
+}
+
+func problemMarker(step dobl.Step) string {
+	switch step.Status {
+	case dobl.EventStatusError:
+		return "x"
+	case dobl.EventStatusCanceled:
+		return "-"
+	case dobl.EventStatusWarning:
+		return "!"
+	default:
+		if step.ErrorDetail != "" {
+			return "x"
+		}
+		if step.WarningDetail != "" {
+			return "!"
+		}
+		return "?"
+	}
+}
+
 func stepLabel(step dobl.Step) string {
 	if step.Instruction != "" {
 		return step.Instruction

@@ -168,7 +168,10 @@ redirected TUI output are rejected.
 Keyboard controls:
 
 - `j`, `k`, arrow keys
-  - Move the selected step.
+  - Move the selected step when the steps pane is focused.
+  - Scroll details when the details pane is focused.
+- `tab`
+  - Switch focus between the steps and details panes.
 - `g`, `G`
   - Jump to the first or last visible step.
 - `pageup`, `pagedown`, `ctrl+u`, `ctrl+d`

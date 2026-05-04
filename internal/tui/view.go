@@ -21,8 +21,9 @@ func (m Model) View() string {
 	}
 
 	header := m.headerView(width)
+	timeline := m.timelineView(width)
 	help := m.helpView(width)
-	bodyHeight := height - lipgloss.Height(header) - lipgloss.Height(help) - 2
+	bodyHeight := height - lipgloss.Height(header) - lipgloss.Height(timeline) - lipgloss.Height(help) - 3
 	if bodyHeight < 6 {
 		bodyHeight = 6
 	}
@@ -48,7 +49,7 @@ func (m Model) View() string {
 		)
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, header, body, help)
+	return lipgloss.JoinVertical(lipgloss.Left, header, timeline, body, help)
 }
 
 func (m Model) headerView(width int) string {
@@ -78,8 +79,36 @@ func (m Model) headerView(width int) string {
 	return trimBlock(line, width)
 }
 
+func (m Model) timelineView(width int) string {
+	if len(m.steps) == 0 {
+		return trimLine("Timeline: (none)", width)
+	}
+
+	selectedID := ""
+	if len(m.visible) > 0 {
+		selectedID = m.visible[m.selected].ID
+	}
+
+	items := make([]string, 0, len(m.steps))
+	for _, step := range m.steps {
+		item := fmt.Sprintf("%s%s", step.ID, statusShort(step.Status))
+		if isProblemStep(step) {
+			item = problemMarker(step) + item
+		}
+		if step.ID == selectedID {
+			item = "[" + item + "]"
+		}
+		items = append(items, item)
+	}
+	return trimLine("Timeline: "+strings.Join(items, " "), width)
+}
+
 func (m Model) listView(width int, height int) string {
-	lines := []string{"Steps"}
+	title := "Steps"
+	if m.focus == FocusSteps {
+		title += " *"
+	}
+	lines := []string{title}
 	if len(m.visible) == 0 {
 		lines = append(lines, "(none)")
 		return padBlock(lines, width, height)
@@ -108,11 +137,12 @@ func (m Model) listView(width int, height int) string {
 
 func (m Model) detailView(width int, height int) string {
 	if len(m.visible) == 0 {
-		return padBlock([]string{"Details", "(none)"}, width, height)
+		return padBlock([]string{m.detailTitle(), "(none)"}, width, height)
 	}
 
 	step := m.visible[m.selected]
 	lines := detailLines(step)
+	lines[0] = m.detailTitle()
 	maxTop := len(lines) - height
 	if maxTop < 0 {
 		maxTop = 0
@@ -158,8 +188,16 @@ func detailLines(step dobl.Step) []string {
 	return lines
 }
 
+func (m Model) detailTitle() string {
+	title := "Details"
+	if m.focus == FocusDetails {
+		title += " *"
+	}
+	return title
+}
+
 func (m Model) helpView(width int) string {
-	mode := "j/k move  n/N problem  pgup/pgdn detail  f filter  p problems  r reset  / search  q quit"
+	mode := fmt.Sprintf("focus:%s  tab focus  j/k move/scroll  n/N problem  f filter  p problems  r reset  / search  q quit", m.focus)
 	if m.searching {
 		mode = "type to search  enter apply  esc close  ctrl+c quit"
 	}
