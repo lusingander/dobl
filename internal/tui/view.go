@@ -90,6 +90,7 @@ func (m Model) timelineView(width int) string {
 	}
 
 	items := make([]string, 0, len(m.steps))
+	selectedIndex := 0
 	for _, step := range m.steps {
 		item := fmt.Sprintf("%s%s", step.ID, statusShort(step.Status))
 		if isProblemStep(step) {
@@ -97,10 +98,65 @@ func (m Model) timelineView(width int) string {
 		}
 		if step.ID == selectedID {
 			item = "[" + item + "]"
+			selectedIndex = len(items)
 		}
 		items = append(items, item)
 	}
-	return trimLine("Timeline: "+strings.Join(items, " "), width)
+
+	line := "Timeline: " + strings.Join(items, " ")
+	if lipgloss.Width(line) <= width {
+		return line
+	}
+	return trimLine("Timeline: "+timelineWindow(items, selectedIndex, width-lipgloss.Width("Timeline: ")), width)
+}
+
+func timelineWindow(items []string, selected int, width int) string {
+	if len(items) == 0 || width <= 0 {
+		return ""
+	}
+	if selected < 0 {
+		selected = 0
+	}
+	if selected >= len(items) {
+		selected = len(items) - 1
+	}
+
+	left := selected
+	right := selected
+	best := timelineWindowLine(items, left, right)
+	for {
+		expanded := false
+		if left > 0 {
+			candidate := timelineWindowLine(items, left-1, right)
+			if lipgloss.Width(candidate) <= width {
+				left--
+				best = candidate
+				expanded = true
+			}
+		}
+		if right < len(items)-1 {
+			candidate := timelineWindowLine(items, left, right+1)
+			if lipgloss.Width(candidate) <= width {
+				right++
+				best = candidate
+				expanded = true
+			}
+		}
+		if !expanded {
+			return best
+		}
+	}
+}
+
+func timelineWindowLine(items []string, left int, right int) string {
+	visible := append([]string(nil), items[left:right+1]...)
+	if left > 0 {
+		visible = append([]string{"..."}, visible...)
+	}
+	if right < len(items)-1 {
+		visible = append(visible, "...")
+	}
+	return strings.Join(visible, " ")
 }
 
 func (m Model) listView(width int, height int) string {

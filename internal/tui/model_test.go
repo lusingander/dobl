@@ -3,6 +3,7 @@ package tui
 import (
 	"bytes"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -356,6 +357,32 @@ func TestTimelineViewTrimsToWidth(t *testing.T) {
 	timeline := model.timelineView(18)
 	if got := lipgloss.Width(timeline); got > 18 {
 		t.Fatalf("timeline width = %d, want <= 18: %q", got, timeline)
+	}
+}
+
+func TestTimelineViewCentersSelectedStepWhenNarrow(t *testing.T) {
+	steps := make([]dobl.Step, 0, 12)
+	for i := 1; i <= 12; i++ {
+		steps = append(steps, dobl.Step{
+			ID:     "#" + strconv.Itoa(i),
+			Status: dobl.EventStatusDone,
+		})
+	}
+	steps[9].Status = dobl.EventStatusError
+
+	model := NewModel(steps, "long.log")
+	model.selected = 6
+	timeline := model.timelineView(34)
+	if got := lipgloss.Width(timeline); got > 34 {
+		t.Fatalf("timeline width = %d, want <= 34: %q", got, timeline)
+	}
+	for _, want := range []string{"Timeline:", "...", "[#7D]"} {
+		if !strings.Contains(timeline, want) {
+			t.Fatalf("timeline %q does not contain %q", timeline, want)
+		}
+	}
+	if strings.Contains(timeline, "#1D") {
+		t.Fatalf("timeline %q should not keep the far-left step when narrow", timeline)
 	}
 }
 
