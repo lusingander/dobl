@@ -435,6 +435,23 @@ func TestListViewShowsStatusMarkers(t *testing.T) {
 	}
 }
 
+func TestListViewUsesCompactStatusWhenNarrow(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+	view := model.listView(36, 5)
+	for _, want := range []string{
+		"> . #1   D internal",
+		"  = #2   C FROM",
+		"  ! #3   W COPY",
+	} {
+		if !strings.Contains(view, want) {
+			t.Fatalf("compact list view %q does not contain %q", view, want)
+		}
+	}
+	if strings.Contains(view, "WARNING") {
+		t.Fatalf("compact list view %q should use short statuses", view)
+	}
+}
+
 func TestTimelineViewTrimsToWidth(t *testing.T) {
 	model := NewModel(sampleSteps(), "test.log")
 	timeline := model.timelineView(18)

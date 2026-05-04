@@ -213,7 +213,7 @@ func (m Model) listView(width int, height int) string {
 		if i == m.selected {
 			prefix = fmt.Sprintf("> %s ", marker)
 		}
-		line := fmt.Sprintf("%s%-4s %-8s %-8s %s", prefix, step.ID, statusText(step.Status), stepLabel(step), step.DisplayName)
+		line := stepListLine(prefix, step, width)
 		if i == m.selected {
 			line = trimLine(line, width)
 			line = selectedStyle.Render(line)
@@ -221,6 +221,13 @@ func (m Model) listView(width int, height int) string {
 		lines = append(lines, line)
 	}
 	return padBlock(lines, width, height)
+}
+
+func stepListLine(prefix string, step dobl.Step, width int) string {
+	if width < 44 {
+		return fmt.Sprintf("%s%-4s %s %-7s %s", prefix, step.ID, statusShort(step.Status), stepLabel(step), step.DisplayName)
+	}
+	return fmt.Sprintf("%s%-4s %-8s %-8s %s", prefix, step.ID, statusText(step.Status), stepLabel(step), step.DisplayName)
 }
 
 func (m Model) detailView(width int, height int) string {
