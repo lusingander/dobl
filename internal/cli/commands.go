@@ -50,6 +50,7 @@ type tuiCmd struct {
 	Summary string `placeholder:"FILE" help:"Read summary JSON from this file instead of parsing a plain build log. Use '-' for stdin."`
 	Filter  string `default:"all" enum:"all,problems,warnings,failed" placeholder:"MODE" help:"Initial filter. One of: all, problems, warnings, failed."`
 	Search  string `placeholder:"QUERY" help:"Initial search query."`
+	View    string `default:"classic" enum:"classic,rich" placeholder:"MODE" help:"TUI view style. One of: classic, rich."`
 	File    string `arg:"" optional:"" help:"Build log file. Reads stdin when omitted or set to '-'."`
 }
 
@@ -87,6 +88,7 @@ func (c *reportCmd) Help() string {
 func (c *tuiCmd) Help() string {
 	return `Examples:
   dobl tui build.log
+  dobl tui --view rich build.log
   dobl tui --filter problems build.log
   dobl tui --search "missing dependency" build.log
   dobl tui --summary summary.json
@@ -189,6 +191,10 @@ func (c *tuiCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
+	view, err := dobltui.ParseViewMode(c.View)
+	if err != nil {
+		return err
+	}
 
 	steps, source, err := loadTUISteps(c.File, c.Summary, ctx.stdin)
 	if err != nil {
@@ -199,6 +205,7 @@ func (c *tuiCmd) Run(ctx *runContext) error {
 		Source:        source,
 		InitialFilter: filter,
 		InitialSearch: c.Search,
+		ViewMode:      view,
 		Output:        ctx.stdout,
 	})
 }

@@ -64,6 +64,41 @@ func TestParseFilterMode(t *testing.T) {
 	}
 }
 
+func TestParseViewMode(t *testing.T) {
+	tests := []struct {
+		value string
+		want  ViewMode
+	}{
+		{value: "", want: ViewClassic},
+		{value: "classic", want: ViewClassic},
+		{value: "rich", want: ViewRich},
+		{value: "RICH", want: ViewRich},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.value, func(t *testing.T) {
+			got, err := ParseViewMode(tt.value)
+			if err != nil {
+				t.Fatalf("parse view mode returned error: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("view mode = %s, want %s", got, tt.want)
+			}
+		})
+	}
+
+	if _, err := ParseViewMode("modern"); err == nil {
+		t.Fatalf("parse view mode returned nil error for unknown view")
+	}
+}
+
+func TestNewModelDefaultsToClassicView(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+	if model.viewMode != ViewClassic {
+		t.Fatalf("view mode = %s, want classic", model.viewMode)
+	}
+}
+
 func TestNextProblemIndexWrapsThroughVisibleSteps(t *testing.T) {
 	steps := sampleSteps()
 

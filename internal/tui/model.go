@@ -19,6 +19,7 @@ type Options struct {
 	Source        string
 	InitialFilter FilterMode
 	InitialSearch string
+	ViewMode      ViewMode
 	Input         io.Reader
 	Output        io.Writer
 }
@@ -35,6 +36,7 @@ type Model struct {
 	detailTop int
 	width     int
 	height    int
+	viewMode  ViewMode
 }
 
 type Focus int
@@ -46,10 +48,11 @@ const (
 
 func NewModel(steps []dobl.Step, source string) Model {
 	m := Model{
-		steps:  append([]dobl.Step(nil), steps...),
-		source: source,
-		width:  defaultWidth,
-		height: defaultHeight,
+		steps:    append([]dobl.Step(nil), steps...),
+		source:   source,
+		width:    defaultWidth,
+		height:   defaultHeight,
+		viewMode: ViewClassic,
 	}
 	m.refreshVisible()
 	return m
@@ -68,6 +71,7 @@ func Run(steps []dobl.Step, options Options) error {
 	model := NewModel(steps, source)
 	model.filter = options.InitialFilter
 	model.search = options.InitialSearch
+	model.viewMode = normalizeViewMode(options.ViewMode)
 	model.refreshVisible()
 	programOptions := []tea.ProgramOption{tea.WithAltScreen(), tea.WithInputTTY()}
 	if options.Input != nil {
