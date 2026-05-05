@@ -105,6 +105,13 @@ tasks:
     cmds:
       - npm run test:browser
 
+  tui:screenshot:
+    desc: Generate TUI screenshots with VHS.
+    cmds:
+      - command -v vhs >/dev/null
+      - mkdir -p docs/screenshots
+      - vhs testdata/tapes/tui-classic.tape
+
   ci:
     desc: Run the checks used by CI.
     cmds:
