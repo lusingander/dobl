@@ -50,18 +50,20 @@ func (m Model) richView() string {
 func (m Model) richHeaderView(width int) string {
 	stats := collectStats(m.steps)
 	problems := stats.Errors + stats.Canceled + stats.Warnings
-	title := richTitleStyle.Render("Dobl TUI")
-	source := richMutedStyle.Render(trimLine(m.source, width-lipgloss.Width("Dobl TUI  ")))
-	metrics := fmt.Sprintf(
-		"Steps %d  OK %d  Cached %d  Problems %d  Outputs %d",
-		stats.Total,
-		stats.Done,
-		stats.Cached,
-		problems,
-		stats.Outputs,
-	)
+	innerWidth := width - 2
+	if innerWidth < 1 {
+		innerWidth = 1
+	}
+	title := richTitleStyle.Render("Dobl TUI") + "  " + richMutedStyle.Render(trimLine(m.source, innerWidth-lipgloss.Width("Dobl TUI  ")))
+	metrics := strings.Join([]string{
+		richMetricBadge("Steps", stats.Total, richHeaderMetricStyle),
+		richMetricBadge("OK", stats.Done, richStatusBadgeStyle(dobl.EventStatusDone)),
+		richMetricBadge("Cached", stats.Cached, richStatusBadgeStyle(dobl.EventStatusCached)),
+		richMetricBadge("Problems", problems, richProblemBadgeStyle(problems > 0)),
+		richMetricBadge("Outputs", stats.Outputs, lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("238"))),
+	}, " ")
 	if problems > 0 {
-		metrics = fmt.Sprintf("%s  (x%d !%d -%d)", metrics, stats.Errors, stats.Warnings, stats.Canceled)
+		metrics += " " + richMutedStyle.Render(fmt.Sprintf("x%d !%d -%d", stats.Errors, stats.Warnings, stats.Canceled))
 	}
 	scope := fmt.Sprintf("Filter %s", m.filter)
 	if m.search != "" {
@@ -74,11 +76,11 @@ func (m Model) richHeaderView(width int) string {
 	}
 
 	lines := []string{
-		trimLine(title+"  "+source, width),
-		trimLine(richHeaderMetricStyle.Render(metrics), width),
-		trimLine(richMutedStyle.Render(scope), width),
+		trimLine(title, innerWidth),
+		trimLine(metrics, innerWidth),
+		trimLine(richMutedStyle.Render(scope), innerWidth),
 	}
-	return strings.Join(lines, "\n")
+	return richHeaderStyle.Width(width - 2).Render(padStyledBlock(lines, innerWidth, len(lines)))
 }
 
 func (m Model) richTimelineView(width int) string {
@@ -114,7 +116,8 @@ func (m Model) richTimelineView(width int) string {
 	for i := 1; i < len(parts); i++ {
 		parts[i] = m.richTimelineItem(parts[i])
 	}
-	return trimLine(richMutedStyle.Render(parts[0])+" "+strings.Join(parts[1:], " "), width)
+	line := trimLine(richMutedStyle.Render(parts[0])+" "+strings.Join(parts[1:], " "), width-2)
+	return richTimelineStyle.Width(width - 2).Render(padLine(line, width-2))
 }
 
 func (m Model) richTimelineItem(item string) string {
@@ -124,9 +127,9 @@ func (m Model) richTimelineItem(item string) string {
 	stepID = strings.TrimRight(stepID, "DCEXWP?")
 	for _, step := range m.steps {
 		if step.ID == stepID {
-			rendered := richStatusStyle(step.Status).Render(raw)
+			rendered := richStatusBadge(raw, step.Status)
 			if selected {
-				return richSelectedRowStyle.Render(" " + rendered + " ")
+				return richSelectedRowStyle.Render(rendered)
 			}
 			return rendered
 		}
@@ -162,14 +165,16 @@ func richStepListLine(step dobl.Step, width int, selected bool) string {
 	if selected {
 		pointer = ">"
 	}
-	marker := richStatusStyle(step.Status).Render(statusMarker(step))
+	marker := richStatusBadge(statusMarker(step), step.Status)
 	if width < 44 {
-		prefix := fmt.Sprintf("%s %s %-4s %s %-7s ", pointer, marker, step.ID, richStatusStyle(step.Status).Render(statusShort(step.Status)), stepLabel(step))
+		status := richStatusBadge(statusShort(step.Status), step.Status)
+		prefix := fmt.Sprintf("%s %s %-4s %s %-7s ", pointer, marker, step.ID, status, stepLabel(step))
 		line := prefix + trimLine(step.DisplayName, width-lipgloss.Width(prefix))
 		return renderRichRow(line, width, selected)
 	}
 
-	prefix := fmt.Sprintf("%s %s %-4s %-8s %-8s ", pointer, marker, step.ID, richStatusStyle(step.Status).Render(statusText(step.Status)), stepLabel(step))
+	status := richStatusBadge(fixedWidth(statusText(step.Status), 8), step.Status)
+	prefix := fmt.Sprintf("%s %s %-4s %s %-8s ", pointer, marker, step.ID, status, stepLabel(step))
 	line := prefix + trimLine(step.DisplayName, width-lipgloss.Width(prefix))
 	return renderRichRow(line, width, selected)
 }
@@ -205,15 +210,19 @@ func (m Model) richDetailView(width int, height int) string {
 	}
 
 	visible := lines[top:]
+	section := ""
 	for i := range visible {
-		visible[i] = richDetailLine(visible[i], innerWidth)
+		if strings.HasPrefix(visible[i], "-- ") {
+			section = strings.TrimPrefix(visible[i], "-- ")
+		}
+		visible[i] = richDetailLine(visible[i], innerWidth, section)
 	}
 	return renderRichPane(visible, width, height, m.focus == FocusDetails)
 }
 
-func richDetailLine(line string, width int) string {
+func richDetailLine(line string, width int, section string) string {
 	if strings.HasPrefix(line, "-- ") {
-		return richSectionStyle.Render(trimLine(line, width))
+		return richSectionStyle.Width(width).Render(padLine(trimLine(line, width), width))
 	}
 	if strings.HasPrefix(line, "Details") {
 		return richTitleStyle.Render(trimLine(line, width))
@@ -224,11 +233,46 @@ func richDetailLine(line string, width int) string {
 	if strings.Contains(line, " WARNING") {
 		return richStatusStyle(dobl.EventStatusWarning).Render(trimLine(line, width))
 	}
+	if section == "Diagnostic" && strings.HasPrefix(line, "  ") {
+		status := dobl.EventStatusError
+		if strings.HasPrefix(line, "  Warning:") {
+			status = dobl.EventStatusWarning
+		}
+		return richDiagnosticLine(strings.TrimSpace(line), width, status)
+	}
+	if strings.HasPrefix(section, "Output tail") && strings.HasPrefix(line, "  ") {
+		return richLogLineStyle.Width(width).Render(padLine(trimLine(line, width), width))
+	}
 	return trimLine(line, width)
 }
 
 func (m Model) richHelpView(width int) string {
-	return richHelpStyle.Render(m.helpView(width))
+	return richHelpStyle.Width(width).Render(padLine(m.helpView(width), width))
+}
+
+func richMetricBadge(label string, value int, style lipgloss.Style) string {
+	return style.Padding(0, 1).Render(fmt.Sprintf("%s %d", label, value))
+}
+
+func richStatusBadge(value string, status dobl.EventStatus) string {
+	return richStatusBadgeStyle(status).Padding(0, 1).Render(value)
+}
+
+func fixedWidth(value string, width int) string {
+	if lipgloss.Width(value) >= width {
+		return value
+	}
+	return value + strings.Repeat(" ", width-lipgloss.Width(value))
+}
+
+func richDiagnosticLine(line string, width int, status dobl.EventStatus) string {
+	if width < 2 {
+		return trimLine(line, width)
+	}
+	bar := richStatusBadgeStyle(status).Render(" ")
+	bodyWidth := width - lipgloss.Width(bar)
+	body := richDiagnosticStyle.Width(bodyWidth).Render(padLine(trimLine(line, bodyWidth), bodyWidth))
+	return bar + body
 }
 
 func paneInnerSize(width int, height int) (int, int) {

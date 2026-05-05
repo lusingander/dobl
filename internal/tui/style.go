@@ -8,12 +8,16 @@ import (
 var (
 	richTitleStyle        = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("86"))
 	richMutedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
-	richHelpStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("246"))
-	richSectionStyle      = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("111"))
+	richHelpStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("246")).Background(lipgloss.Color("235"))
+	richSectionStyle      = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("111")).Background(lipgloss.Color("236"))
 	richSelectedRowStyle  = lipgloss.NewStyle().Background(lipgloss.Color("238")).Foreground(lipgloss.Color("252"))
-	richPaneStyle         = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("238")).Padding(0, 1)
+	richPaneStyle         = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("238")).Background(lipgloss.Color("235")).Padding(0, 1)
 	richActivePaneStyle   = richPaneStyle.Copy().BorderForeground(lipgloss.Color("86"))
+	richHeaderStyle       = lipgloss.NewStyle().Background(lipgloss.Color("235")).Padding(0, 1)
 	richHeaderMetricStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
+	richTimelineStyle     = lipgloss.NewStyle().Background(lipgloss.Color("235")).Padding(0, 1)
+	richLogLineStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("232"))
+	richDiagnosticStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
 )
 
 func richStatusStyle(status dobl.EventStatus) lipgloss.Style {
@@ -33,4 +37,30 @@ func richStatusStyle(status dobl.EventStatus) lipgloss.Style {
 	default:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 	}
+}
+
+func richStatusBadgeStyle(status dobl.EventStatus) lipgloss.Style {
+	switch status {
+	case dobl.EventStatusError:
+		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("210")).Background(lipgloss.Color("52"))
+	case dobl.EventStatusWarning:
+		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("229")).Background(lipgloss.Color("58"))
+	case dobl.EventStatusCanceled:
+		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("219")).Background(lipgloss.Color("53"))
+	case dobl.EventStatusCached:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("123")).Background(lipgloss.Color("24"))
+	case dobl.EventStatusDone:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("157")).Background(lipgloss.Color("22"))
+	case dobl.EventStatusProgress:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("153")).Background(lipgloss.Color("24"))
+	default:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("238"))
+	}
+}
+
+func richProblemBadgeStyle(hasProblems bool) lipgloss.Style {
+	if hasProblems {
+		return richStatusBadgeStyle(dobl.EventStatusError)
+	}
+	return richStatusBadgeStyle(dobl.EventStatusDone)
 }
