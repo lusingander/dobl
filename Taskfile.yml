@@ -111,6 +111,7 @@ tasks:
       - command -v vhs >/dev/null
       - mkdir -p docs/screenshots
       - vhs testdata/tapes/tui-classic.tape
+      - vhs testdata/tapes/tui-rich.tape
 
   ci:
     desc: Run the checks used by CI.
