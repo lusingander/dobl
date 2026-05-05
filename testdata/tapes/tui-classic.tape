@@ -16,7 +16,7 @@ Type "clear"
 Enter
 Show
 
-Type "/tmp/dobl tui testdata/error_plain.log"
+Type "/tmp/dobl tui --summary examples/viewer/sample-summary.json"
 Enter
 Sleep 1s
 Sleep 500ms
@@ -26,7 +26,7 @@ Sleep 500ms
 Type "q"
 Sleep 500ms
 
-Type "/tmp/dobl tui --filter problems testdata/error_plain.log"
+Type "/tmp/dobl tui --summary examples/viewer/sample-summary.json --filter problems"
 Enter
 Sleep 1s
 Screenshot docs/screenshots/tui-classic-problems.png
