@@ -372,6 +372,44 @@ func TestViewHandlesEmptyAndNarrowScreens(t *testing.T) {
 	}
 }
 
+func TestRichViewShowsBordersAndContent(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+	model.viewMode = ViewRich
+	model.width = 100
+	model.height = 24
+
+	view := model.View()
+	for _, want := range []string{"Dobl TUI", "Steps (4/4)", "Details #1 DONE", "Timeline:", "│"} {
+		if !strings.Contains(view, want) {
+			t.Fatalf("rich view %q does not contain %q", view, want)
+		}
+	}
+	for _, line := range strings.Split(view, "\n") {
+		if got := lipgloss.Width(line); got > model.width {
+			t.Fatalf("rich line width = %d, want <= %d: %q", got, model.width, line)
+		}
+	}
+}
+
+func TestRichViewHandlesNarrowScreens(t *testing.T) {
+	model := NewModel(sampleSteps(), "test.log")
+	model.viewMode = ViewRich
+	model.width = 44
+	model.height = 16
+
+	view := model.View()
+	for _, want := range []string{"Dobl TUI", "Steps", "Details"} {
+		if !strings.Contains(view, want) {
+			t.Fatalf("rich narrow view %q does not contain %q", view, want)
+		}
+	}
+	for _, line := range strings.Split(view, "\n") {
+		if got := lipgloss.Width(line); got > model.width {
+			t.Fatalf("rich narrow line width = %d, want <= %d: %q", got, model.width, line)
+		}
+	}
+}
+
 func TestHeaderViewSummarizesProblemsAndScope(t *testing.T) {
 	model := NewModel(sampleSteps(), "test.log")
 	model.filter = FilterProblems

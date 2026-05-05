@@ -8,7 +8,3 @@ func (m Model) View() string {
 		return m.classicView()
 	}
 }
-
-func (m Model) richView() string {
-	return m.classicView()
-}
