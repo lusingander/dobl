@@ -16,11 +16,16 @@ Type "clear"
 Enter
 Show
 
+Type "unset NO_COLOR"
+Enter
+Sleep 200ms
+
 Type "COLORTERM=truecolor TERM=xterm-256color /tmp/dobl tui --view rich testdata/error_plain.log"
 Enter
 Sleep 1s
 Sleep 500ms
 Screenshot docs/screenshots/tui-rich.png
+Sleep 500ms
 
 Type "q"
 Sleep 500ms
@@ -29,5 +34,6 @@ Type "COLORTERM=truecolor TERM=xterm-256color /tmp/dobl tui --view rich --filter
 Enter
 Sleep 1s
 Screenshot docs/screenshots/tui-rich-problems.png
+Sleep 500ms
 
 Type "q"
