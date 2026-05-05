@@ -93,56 +93,28 @@ func (m Model) richTimelineView(width int) string {
 		selectedID = m.visible[m.selected].ID
 	}
 
-	rawItems := make([]string, 0, len(m.steps))
+	entries := make([]richTimelineEntry, 0, len(m.steps))
 	selectedIndex := 0
 	for _, step := range m.steps {
-		item := fmt.Sprintf("%s%s", step.ID, statusShort(step.Status))
+		label := fmt.Sprintf("%s%s", step.ID, statusShort(step.Status))
 		if isProblemStep(step) {
-			item = problemMarker(step) + item
+			label = problemMarker(step) + label
 		}
 		if step.ID == selectedID {
-			item = "[" + item + "]"
-			selectedIndex = len(rawItems)
+			selectedIndex = len(entries)
 		}
-		rawItems = append(rawItems, item)
+		entries = append(entries, richTimelineEntry{label: label, status: step.Status})
 	}
 
-	rawLine := "Timeline: " + strings.Join(rawItems, " ")
-	if lipgloss.Width(rawLine) > width {
-		rawLine = trimLine("Timeline: "+timelineWindow(rawItems, selectedIndex, width-lipgloss.Width("Timeline: ")), width)
-	}
-
-	parts := strings.Split(rawLine, " ")
-	for i := 1; i < len(parts); i++ {
-		parts[i] = m.richTimelineItem(parts[i])
-	}
-	line := trimLine(richMutedStyle.Render(parts[0])+" "+strings.Join(parts[1:], " "), width-2)
-	return richTimelineStyle.Width(width - 2).Render(padLine(line, width-2))
-}
-
-func (m Model) richTimelineItem(item string) string {
-	selected := strings.HasPrefix(item, "[") && strings.HasSuffix(item, "]")
-	raw := strings.Trim(item, "[]")
-	stepID := strings.TrimLeft(raw, "x!-")
-	stepID = strings.TrimRight(stepID, "DCEXWP?")
-	for _, step := range m.steps {
-		if step.ID == stepID {
-			rendered := richStatusBadge(raw, step.Status)
-			if selected {
-				return richSelectedRowStyle.Render(rendered)
-			}
-			return rendered
-		}
-	}
-	return item
+	available := width - lipgloss.Width("Timeline: ")
+	left, right := richTimelineWindow(entries, selectedIndex, available)
+	line := richMutedStyle.Render("Timeline:") + " " + richTimelineLine(entries, left, right, selectedIndex)
+	return trimLine(richTimelineStyle.Render(line), width)
 }
 
 func (m Model) richListView(width int, height int) string {
 	innerWidth, innerHeight := paneInnerSize(width, height)
 	title := fmt.Sprintf("Steps (%d/%d)", len(m.visible), len(m.steps))
-	if m.focus == FocusSteps {
-		title += " *"
-	}
 	lines := []string{richTitleStyle.Render(trimLine(title, innerWidth))}
 	if len(m.visible) == 0 {
 		lines = append(lines, richMutedStyle.Render(trimLine(m.emptyMessage(), innerWidth)))
@@ -161,10 +133,11 @@ func (m Model) richListView(width int, height int) string {
 }
 
 func richStepListLine(step dobl.Step, width int, selected bool) string {
-	pointer := " "
 	if selected {
-		pointer = ">"
+		return richSelectedStepListLine(step, width)
 	}
+
+	pointer := " "
 	marker := richStatusBadge(statusMarker(step), step.Status)
 	if width < 44 {
 		status := richStatusBadge(statusShort(step.Status), step.Status)
@@ -179,6 +152,15 @@ func richStepListLine(step dobl.Step, width int, selected bool) string {
 	return renderRichRow(line, width, selected)
 }
 
+func richSelectedStepListLine(step dobl.Step, width int) string {
+	if width < 44 {
+		line := fmt.Sprintf("  %s %-4s %s %-7s %s", statusMarker(step), step.ID, statusShort(step.Status), stepLabel(step), step.DisplayName)
+		return richSelectedRowStyle.Width(width).Render(padLine(trimLine(line, width), width))
+	}
+	line := fmt.Sprintf("  %s %-4s %-8s %-8s %s", statusMarker(step), step.ID, statusText(step.Status), stepLabel(step), step.DisplayName)
+	return richSelectedRowStyle.Width(width).Render(padLine(trimLine(line, width), width))
+}
+
 func renderRichRow(line string, width int, selected bool) string {
 	line = padLine(line, width)
 	if selected {
@@ -190,13 +172,13 @@ func renderRichRow(line string, width int, selected bool) string {
 func (m Model) richDetailView(width int, height int) string {
 	innerWidth, innerHeight := paneInnerSize(width, height)
 	if len(m.visible) == 0 {
-		lines := []string{richTitleStyle.Render(trimLine(m.detailTitle(), innerWidth)), richMutedStyle.Render(trimLine(m.emptyMessage(), innerWidth))}
+		lines := []string{richTitleStyle.Render(trimLine(m.richDetailTitle(), innerWidth)), richMutedStyle.Render(trimLine(m.emptyMessage(), innerWidth))}
 		return renderRichPane(lines, width, height, m.focus == FocusDetails)
 	}
 
 	step := m.visible[m.selected]
 	lines := detailLines(step)
-	lines[0] = m.detailTitle()
+	lines[0] = m.richDetailTitle()
 	maxTop := len(lines) - innerHeight
 	if maxTop < 0 {
 		maxTop = 0
@@ -222,7 +204,7 @@ func (m Model) richDetailView(width int, height int) string {
 
 func richDetailLine(line string, width int, section string) string {
 	if strings.HasPrefix(line, "-- ") {
-		return richSectionStyle.Width(width).Render(padLine(trimLine(line, width), width))
+		return richSectionStyle.Render(trimLine(line, width))
 	}
 	if strings.HasPrefix(line, "Details") {
 		return richTitleStyle.Render(trimLine(line, width))
@@ -241,9 +223,17 @@ func richDetailLine(line string, width int, section string) string {
 		return richDiagnosticLine(strings.TrimSpace(line), width, status)
 	}
 	if strings.HasPrefix(section, "Output tail") && strings.HasPrefix(line, "  ") {
-		return richLogLineStyle.Width(width).Render(padLine(trimLine(line, width), width))
+		return richLogLineStyle.Render(trimLine(line, width))
 	}
 	return trimLine(line, width)
+}
+
+func (m Model) richDetailTitle() string {
+	if len(m.visible) == 0 {
+		return "Details"
+	}
+	step := m.visible[m.selected]
+	return fmt.Sprintf("Details %s %s", step.ID, statusText(step.Status))
 }
 
 func (m Model) richHelpView(width int) string {
@@ -256,6 +246,89 @@ func richMetricBadge(label string, value int, style lipgloss.Style) string {
 
 func richStatusBadge(value string, status dobl.EventStatus) string {
 	return richStatusBadgeStyle(status).Padding(0, 1).Render(value)
+}
+
+type richTimelineEntry struct {
+	label  string
+	status dobl.EventStatus
+}
+
+func richTimelineWindow(entries []richTimelineEntry, selected int, width int) (int, int) {
+	if len(entries) == 0 {
+		return 0, -1
+	}
+	if selected < 0 {
+		selected = 0
+	}
+	if selected >= len(entries) {
+		selected = len(entries) - 1
+	}
+
+	left := selected
+	right := selected
+	for {
+		expanded := false
+		if left > 0 && richTimelineWidth(entries, left-1, right) <= width {
+			left--
+			expanded = true
+		}
+		if right < len(entries)-1 && richTimelineWidth(entries, left, right+1) <= width {
+			right++
+			expanded = true
+		}
+		if !expanded {
+			return left, right
+		}
+	}
+}
+
+func richTimelineWidth(entries []richTimelineEntry, left int, right int) int {
+	if len(entries) == 0 || right < left {
+		return 0
+	}
+	width := 0
+	items := 0
+	if left > 0 {
+		width += lipgloss.Width("...")
+		items++
+	}
+	for i := left; i <= right; i++ {
+		width += lipgloss.Width(entries[i].label) + 2
+		items++
+	}
+	if right < len(entries)-1 {
+		width += lipgloss.Width("...")
+		items++
+	}
+	if items > 1 {
+		width += items - 1
+	}
+	return width
+}
+
+func richTimelineLine(entries []richTimelineEntry, left int, right int, selected int) string {
+	if len(entries) == 0 || right < left {
+		return ""
+	}
+	items := make([]string, 0, right-left+3)
+	if left > 0 {
+		items = append(items, richMutedStyle.Render("..."))
+	}
+	for i := left; i <= right; i++ {
+		items = append(items, richTimelineBadge(entries[i], i == selected))
+	}
+	if right < len(entries)-1 {
+		items = append(items, richMutedStyle.Render("..."))
+	}
+	return strings.Join(items, " ")
+}
+
+func richTimelineBadge(entry richTimelineEntry, selected bool) string {
+	style := richStatusBadgeStyle(entry.status)
+	if selected {
+		style = richTimelineSelected
+	}
+	return style.Padding(0, 1).Render(entry.label)
 }
 
 func fixedWidth(value string, width int) string {
@@ -271,7 +344,7 @@ func richDiagnosticLine(line string, width int, status dobl.EventStatus) string 
 	}
 	bar := richStatusBadgeStyle(status).Render(" ")
 	bodyWidth := width - lipgloss.Width(bar)
-	body := richDiagnosticStyle.Width(bodyWidth).Render(padLine(trimLine(line, bodyWidth), bodyWidth))
+	body := richDiagnosticStyle.Render(trimLine(line, bodyWidth))
 	return bar + body
 }
 
