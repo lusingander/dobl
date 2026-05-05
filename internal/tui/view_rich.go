@@ -154,10 +154,10 @@ func richStepListLine(step dobl.Step, width int, selected bool) string {
 
 func richSelectedStepListLine(step dobl.Step, width int) string {
 	if width < 44 {
-		line := fmt.Sprintf("  %s %-4s %s %-7s %s", statusMarker(step), step.ID, statusShort(step.Status), stepLabel(step), step.DisplayName)
+		line := fmt.Sprintf("  %-3s %-4s %-3s %-7s %s", statusMarker(step), step.ID, statusShort(step.Status), stepLabel(step), step.DisplayName)
 		return richSelectedRowStyle.Width(width).Render(padLine(trimLine(line, width), width))
 	}
-	line := fmt.Sprintf("  %s %-4s %-8s %-8s %s", statusMarker(step), step.ID, statusText(step.Status), stepLabel(step), step.DisplayName)
+	line := fmt.Sprintf("  %-3s %-4s %-10s %-8s %s", statusMarker(step), step.ID, statusText(step.Status), stepLabel(step), step.DisplayName)
 	return richSelectedRowStyle.Width(width).Render(padLine(trimLine(line, width), width))
 }
 
@@ -220,7 +220,7 @@ func richDetailLine(line string, width int, section string) string {
 		if strings.HasPrefix(line, "  Warning:") {
 			status = dobl.EventStatusWarning
 		}
-		return richDiagnosticLine(strings.TrimSpace(line), width, status)
+		return richStatusStyle(status).Render(trimLine(line, width))
 	}
 	if strings.HasPrefix(section, "Output tail") && strings.HasPrefix(line, "  ") {
 		return richLogLineStyle.Render(trimLine(line, width))
@@ -336,16 +336,6 @@ func fixedWidth(value string, width int) string {
 		return value
 	}
 	return value + strings.Repeat(" ", width-lipgloss.Width(value))
-}
-
-func richDiagnosticLine(line string, width int, status dobl.EventStatus) string {
-	if width < 2 {
-		return trimLine(line, width)
-	}
-	bar := richStatusBadgeStyle(status).Render(" ")
-	bodyWidth := width - lipgloss.Width(bar)
-	body := richDiagnosticStyle.Render(trimLine(line, bodyWidth))
-	return bar + body
 }
 
 func paneInnerSize(width int, height int) (int, int) {

@@ -9,7 +9,7 @@ var (
 	richTitleStyle        = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("86"))
 	richMutedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 	richHelpStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("246"))
-	richSectionStyle      = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("111")).Background(lipgloss.Color("236"))
+	richSectionStyle      = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("111"))
 	richSelectedRowStyle  = lipgloss.NewStyle().Background(lipgloss.Color("238")).Foreground(lipgloss.Color("252"))
 	richPaneStyle         = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("238")).Padding(0, 1)
 	richActivePaneStyle   = richPaneStyle.Copy().BorderForeground(lipgloss.Color("86"))
@@ -18,7 +18,6 @@ var (
 	richTimelineStyle     = lipgloss.NewStyle()
 	richTimelineSelected  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("16")).Background(lipgloss.Color("86"))
 	richLogLineStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("232"))
-	richDiagnosticStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
 )
 
 func richStatusStyle(status dobl.EventStatus) lipgloss.Style {
