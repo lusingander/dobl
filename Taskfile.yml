@@ -112,6 +112,7 @@ tasks:
       - mkdir -p docs/screenshots
       - vhs testdata/tapes/tui-classic.tape
       - vhs testdata/tapes/tui-rich.tape
+      - vhs testdata/tapes/tui-rich-narrow.tape
 
   ci:
     desc: Run the checks used by CI.

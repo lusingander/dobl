@@ -1,12 +1,12 @@
 Require go
 
-Set Width 1200
+Set Width 720
 Set Height 760
 Set FontSize 18
 Set Framerate 10
 Set Theme "Catppuccin Mocha"
 
-Output docs/screenshots/tui-rich.gif
+Output docs/screenshots/tui-rich-narrow.gif
 
 Hide
 Type "GOCACHE=/tmp/dobl-go-build go build -o /tmp/dobl ./cmd/dobl && echo DOBL_READY"
@@ -20,25 +20,10 @@ Type "unset NO_COLOR"
 Enter
 Sleep 200ms
 
-Type "COLORTERM=truecolor TERM=xterm-256color /tmp/dobl tui --view rich testdata/error_plain.log"
-Enter
-Sleep 1s
-Sleep 500ms
-Screenshot docs/screenshots/tui-rich.png
-Sleep 500ms
-
-Right
-Sleep 500ms
-Screenshot docs/screenshots/tui-rich-details.png
-Sleep 500ms
-
-Type "q"
-Sleep 500ms
-
 Type "COLORTERM=truecolor TERM=xterm-256color /tmp/dobl tui --view rich --filter problems testdata/error_plain.log"
 Enter
 Sleep 1s
-Screenshot docs/screenshots/tui-rich-problems.png
+Screenshot docs/screenshots/tui-rich-narrow.png
 Sleep 500ms
 
 Type "q"
