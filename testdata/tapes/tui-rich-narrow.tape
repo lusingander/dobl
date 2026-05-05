@@ -20,7 +20,7 @@ Type "unset NO_COLOR"
 Enter
 Sleep 200ms
 
-Type "COLORTERM=truecolor TERM=xterm-256color /tmp/dobl tui --view rich --filter problems testdata/error_plain.log"
+Type "COLORTERM=truecolor TERM=xterm-256color /tmp/dobl tui --view rich --summary examples/viewer/sample-summary.json --filter failed"
 Enter
 Sleep 1s
 Screenshot docs/screenshots/tui-rich-narrow.png

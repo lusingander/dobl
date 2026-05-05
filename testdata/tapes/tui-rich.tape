@@ -42,3 +42,12 @@ Screenshot docs/screenshots/tui-rich-problems.png
 Sleep 500ms
 
 Type "q"
+Sleep 500ms
+
+Type "COLORTERM=truecolor TERM=xterm-256color /tmp/dobl tui --view rich --summary examples/viewer/sample-summary.json --filter failed"
+Enter
+Sleep 1s
+Screenshot docs/screenshots/tui-rich-summary-error.png
+Sleep 500ms
+
+Type "q"

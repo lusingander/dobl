@@ -21,6 +21,7 @@ Enter
 Sleep 1s
 Sleep 500ms
 Screenshot docs/screenshots/tui-classic.png
+Sleep 500ms
 
 Type "q"
 Sleep 500ms
@@ -29,5 +30,6 @@ Type "/tmp/dobl tui --filter problems testdata/error_plain.log"
 Enter
 Sleep 1s
 Screenshot docs/screenshots/tui-classic-problems.png
+Sleep 500ms
 
 Type "q"
