@@ -157,7 +157,7 @@ func richSelectedStepListLine(step dobl.Step, width int) string {
 		line := fmt.Sprintf("  %-3s %-4s %-3s %-7s %s", statusMarker(step), step.ID, statusShort(step.Status), stepLabel(step), step.DisplayName)
 		return richSelectedRowStyle.Width(width).Render(padLine(trimLine(line, width), width))
 	}
-	line := fmt.Sprintf("  %-3s %-4s %-10s %-8s %s", statusMarker(step), step.ID, statusText(step.Status), stepLabel(step), step.DisplayName)
+	line := fmt.Sprintf("  %-3s %-4s %-10s %-8s %s", statusMarker(step), step.ID, fixedWidth(statusText(step.Status), 8), stepLabel(step), step.DisplayName)
 	return richSelectedRowStyle.Width(width).Render(padLine(trimLine(line, width), width))
 }
 
